@@ -9,6 +9,11 @@ function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
+  // For learning purposes
+  // communicates between my react frontend and tauri backend
+  // invoke is a tauri api that calls a rust command from the fontend typescript
+  // for example, this calls the "gree" command in src-tauri/src/lib.rs
+  // To my knowledge, every function that calls a tauri command must be async. invoke returns a promise
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     setGreetMsg(await invoke("greet", { name }));
@@ -16,38 +21,6 @@ function App() {
 
   return (
     <>
-      <main className="container">
-        <h1>Welcome to Tauri + React</h1>
-
-        <div className="row">
-          <a href="https://vite.dev" target="_blank">
-            <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-          </a>
-          <a href="https://tauri.app" target="_blank">
-            <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </div>
-        <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-        <form
-          className="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            greet();
-          }}
-        >
-          <input
-            id="greet-input"
-            onChange={(e) => setName(e.currentTarget.value)}
-            placeholder="Enter a name..."
-          />
-          <button type="submit">Greet</button>
-        </form>
-        <p>{greetMsg}</p>
-      </main>
       <RouterProvider router={Router} />
     </>
   );

@@ -1,7 +1,16 @@
 import React from "react";
+import "./Body.css";
 
-function Body() {
-  return <div>Body</div>;
-}
+const Body = () => {
+  const [body, setBody] = React.useState("");
+
+  return (
+    <>
+      <div className="note-body">
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} />
+      </div>
+    </>
+  );
+};
 
 export default Body;

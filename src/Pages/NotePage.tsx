@@ -6,7 +6,6 @@ import OpenNoteList from "../components/Note/OpenNoteList";
 function NotePage() {
   return (
     <>
-      <OpenNoteList />
       <NavBar />
       <Body />
     </>
