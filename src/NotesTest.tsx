@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Note, getNotes } from "../db/NotesService";
+import { Note, getNotes } from "./db/Services/NotesService";
 
 const NotesList = () => {
   const [notes, setNotes] = useState<Note[]>([]); // <-- explicitly type state
