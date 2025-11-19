@@ -9,6 +9,10 @@ export const addNote = async (note: Omit<Note, 'id' | 'noteId'>) => {
 };
 
 // Read
+export const getNote = async (id: number): Promise<Note | undefined> => {
+  return await db.notes.get(id);
+};
+
 export const getNotes = async (): Promise<Note[]> => {
   return await db.notes.toArray();
 };

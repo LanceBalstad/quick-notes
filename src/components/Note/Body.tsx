@@ -90,7 +90,7 @@ const Body = ({ body, setBody }: BodyProps) => {
     const after = value.slice(selectionEnd);
 
     const lineInfo = getCurrentLineInfo(before, after);
-    let insert = "";
+    let insert = "\t";
 
     // If on a list line starting with "-", shift the dash right by including it in insert
     if (isListLine(lineInfo)) {
@@ -98,18 +98,25 @@ const Body = ({ body, setBody }: BodyProps) => {
 
       // If the shift key is also being held and there is white space being the dash in the line, we want to unindent instead
       if (e.shiftKey) {
-        if (lineInfo.leadingWhitespace.length > 0) {
+        if (
+          lineInfo.leadingWhitespace.length > 0 &&
+          lineInfo.previousChar === "-"
+        ) {
           // Must be a seperate if statement to catch the case where the user unindents and there are no leading whitespaces (do nothing)
-          before = before.slice(0, dashIndex - 1) + before.slice(dashIndex + 1);
-          insert += "-";
+          before =
+            before.slice(0, lineInfo.lineStart) +
+            lineInfo.leadingWhitespace.slice(0, -1) +
+            lineInfo.trimmedLine;
+
+          insert = "";
         }
       }
 
       // logic for if tab key is pressed without shift
-      else {
+      else if (lineInfo.previousChar === "-") {
         const dashIndex = lineInfo.dashIndex;
         before = before.slice(0, dashIndex) + before.slice(dashIndex + 1);
-        insert += "\t-";
+        insert += "-";
       }
     }
 
@@ -134,10 +141,10 @@ const Body = ({ body, setBody }: BodyProps) => {
       const dashIndex = lineInfo.dashIndex;
       before =
         before.slice(0, lineInfo.lineStart) + before.slice(dashIndex + 1);
-    }
 
-    const newValue = before + after;
-    updateTextAreaState(newValue, before.length);
+      const newValue = before + after;
+      updateTextAreaState(newValue, before.length);
+    }
   };
 
   // We only want to handle certain keys
