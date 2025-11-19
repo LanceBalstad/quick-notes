@@ -21,6 +21,11 @@ export const getActiveNotes = async (): Promise<Note[]> => {
   return await db.notes.where('softDeleted').equals('false').toArray();
 };
 
+export const isCurrentNameUnique = async (currentId: number, title: string): Promise<boolean> => {
+  const count = await db.notes.where('title').equals(title).and(note => note.id !== currentId).first();
+  return count === undefined;
+}
+
 // Update
 export const updateNote = async (id: number, updates: Partial<Note>) => {
   return await db.notes.update(id, updates);

@@ -6,6 +6,7 @@ import {
   getNotes,
   updateNote,
   getNote,
+  isCurrentNameUnique,
 } from "../db/Services/NotesService";
 import { Note } from "../db/Services/NotesService";
 
@@ -13,6 +14,7 @@ function NotePage() {
   const [body, setBody] = React.useState("");
   const [noteList, setNoteList] = React.useState<Note[]>([]);
   const [currentNoteId, setCurrentNoteId] = React.useState<number | null>(null);
+  const [title, setTitle] = React.useState("");
 
   const fetchNotes = async () => {
     const notes = await getNotes();
@@ -24,11 +26,20 @@ function NotePage() {
   }, []);
 
   const handleSave = async () => {
+    const isUniqueName = await isCurrentNameUnique(currentNoteId || -1, title);
+    if (title.trim() === "") {
+      alert("Note title cannot be empty!");
+      return;
+    }
+    if (!isUniqueName) {
+      alert("Note title must be unique!");
+      return;
+    }
     if (currentNoteId) {
-      await updateNote(currentNoteId, { content: body });
+      await updateNote(currentNoteId, { title: title, content: body });
     } else {
       const newId = await addNote({
-        title: "Untitled",
+        title: title,
         content: body,
         createdAt: new Date(),
         softDeleted: false,
@@ -44,12 +55,14 @@ function NotePage() {
     if (!noteId) {
       setBody("");
       setCurrentNoteId(null);
+      setTitle("");
       return;
     }
     const note = await getNote(noteId);
     if (note) {
       setCurrentNoteId(note.id || null);
       setBody(note.content || "");
+      setTitle(note.title || "");
     }
   };
 
@@ -59,6 +72,8 @@ function NotePage() {
         onSave={handleSave}
         notes={noteList}
         onOpenNote={handleOpenNote}
+        title={title}
+        setTitle={setTitle}
       />
       <Body body={body} setBody={setBody} />
     </>
