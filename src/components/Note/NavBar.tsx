@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
 import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
-import { getNote } from "../../db/Services/NotesService";
+import { useNavigate } from "react-router-dom";
 
 interface NavBarProps {
   // Save logic is in the NotePage component to grab body value
@@ -10,6 +9,7 @@ interface NavBarProps {
   onOpenNote: (noteId?: number) => void;
   title: string;
   setTitle: (title: string) => void;
+  onSoftDelete: () => void;
 }
 
 const NavBar = ({
@@ -18,7 +18,14 @@ const NavBar = ({
   onOpenNote,
   title,
   setTitle,
+  onSoftDelete,
 }: NavBarProps) => {
+  const navigate = useNavigate();
+
+  const navToSyncAzurePage = () => {
+    navigate("/sync-azure");
+  };
+
   return (
     <>
       <div className="navbar">
@@ -47,6 +54,15 @@ const NavBar = ({
           placeholder="Untitled..."
           // onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
+        <button className="deleteButton" onClick={() => onSoftDelete()}>
+          Delete
+        </button>
+        <button
+          className="syncAzureButton"
+          onClick={() => navToSyncAzurePage()}
+        >
+          SyncAzure
+        </button>
       </div>
     </>
   );

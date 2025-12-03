@@ -24,7 +24,7 @@ export class QuickNotesDB extends Dexie {
   constructor() {
     super('QuickNotesDB');
     this.version(1).stores({
-      notes: '++id, &noteId, azureId, title, createdAt, softDeleted', // indexed fields
+      notes: '++id, &noteId, azureId, title, createdAt', // indexed fields
       azureUsers: '++id, azureId, createdAt'
     });
   }

@@ -3,7 +3,7 @@ import NavBar from "../components/Note/NavBar";
 import Body from "../components/Note/Body";
 import {
   addNote,
-  getNotes,
+  getActiveNotes,
   updateNote,
   getNote,
   isCurrentNameUnique,
@@ -17,7 +17,7 @@ function NotePage() {
   const [title, setTitle] = React.useState("");
 
   const fetchNotes = async () => {
-    const notes = await getNotes();
+    const notes = await getActiveNotes();
     setNoteList(notes);
   };
 
@@ -66,6 +66,13 @@ function NotePage() {
     }
   };
 
+  const handleSoftDelete = async () => {
+    if (currentNoteId) {
+      await updateNote(currentNoteId, { softDeleted: true });
+      await fetchNotes();
+    }
+  };
+
   return (
     <>
       <NavBar
@@ -74,6 +81,7 @@ function NotePage() {
         onOpenNote={handleOpenNote}
         title={title}
         setTitle={setTitle}
+        onSoftDelete={handleSoftDelete}
       />
       <Body body={body} setBody={setBody} />
     </>

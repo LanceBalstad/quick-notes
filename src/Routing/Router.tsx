@@ -5,8 +5,10 @@ import {
   Navigate,
 } from "react-router-dom";
 import NotePage from "../Pages/NotePage";
+import SyncAzure from "../components/SyncAzure/SyncAzure";
 
 export const Router = createBrowserRouter([
   { path: "/", element: <NotePage /> },
   { path: "/:noteId", element: <NotePage /> }, // TODO: This functionality will need to be added. Check Product_List_Page in Fora
+  { path: "/sync-azure", element: <SyncAzure /> },
 ]);

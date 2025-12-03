@@ -18,11 +18,11 @@ export const getNotes = async (): Promise<Note[]> => {
 };
 
 export const getActiveNotes = async (): Promise<Note[]> => {
-  return await db.notes.where('softDeleted').equals('false').toArray();
+  return await db.notes.filter(note => note.softDeleted === false).toArray();
 };
 
 export const isCurrentNameUnique = async (currentId: number, title: string): Promise<boolean> => {
-  const count = await db.notes.where('title').equals(title).and(note => note.id !== currentId).first();
+  const count = await db.notes.where('title').equals(title).and(note => note.id !== currentId && note.softDeleted === false).first();
   return count === undefined;
 }
 

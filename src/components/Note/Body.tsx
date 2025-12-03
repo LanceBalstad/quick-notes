@@ -10,7 +10,7 @@ const Body = ({ body, setBody }: BodyProps) => {
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
   // Get info about the current line (leading whitespace, first char, dash position)
-  const getCurrentLineInfo = (before: string, after: string) => {
+  const getCurrentLineInfo = (before: string) => {
     const currentLine = before.split("\n").pop() || "";
     const trimmedLine = currentLine.replace(/^\s*/, "");
     const firstCharInLineMinusWhiteSpace = trimmedLine.charAt(0);
@@ -34,11 +34,7 @@ const Body = ({ body, setBody }: BodyProps) => {
   };
 
   // Helper: Update textarea state and restore caret position
-  const updateTextAreaState = (
-    newValue: string,
-    caretPos: number,
-    shouldPreventDefault?: boolean
-  ) => {
+  const updateTextAreaState = (newValue: string, caretPos: number) => {
     setBody(newValue);
     requestAnimationFrame(() => {
       if (textareaRef.current) {
@@ -65,7 +61,7 @@ const Body = ({ body, setBody }: BodyProps) => {
     const before = value.slice(0, selectionStart);
     const after = value.slice(selectionEnd);
 
-    const lineInfo = getCurrentLineInfo(before, after);
+    const lineInfo = getCurrentLineInfo(before);
 
     // If the current line started with "-", then start the new line with "-"
     if (lineInfo.firstCharInLineMinusWhiteSpace === "-") {
@@ -89,13 +85,11 @@ const Body = ({ body, setBody }: BodyProps) => {
     let before = value.slice(0, selectionStart);
     const after = value.slice(selectionEnd);
 
-    const lineInfo = getCurrentLineInfo(before, after);
+    const lineInfo = getCurrentLineInfo(before);
     let insert = "\t";
 
     // If on a list line starting with "-", shift the dash right by including it in insert
     if (isListLine(lineInfo)) {
-      const dashIndex = lineInfo.dashIndex;
-
       // If the shift key is also being held and there is white space being the dash in the line, we want to unindent instead
       if (e.shiftKey) {
         if (
@@ -133,7 +127,7 @@ const Body = ({ body, setBody }: BodyProps) => {
     let before = value.slice(0, selectionStart);
     const after = value.slice(selectionEnd);
 
-    const lineInfo = getCurrentLineInfo(before, after);
+    const lineInfo = getCurrentLineInfo(before);
 
     // If backspace is pressed and we're right after the dash at line start, remove the dash
     if (isListLine(lineInfo) && lineInfo.previousChar === "-") {
