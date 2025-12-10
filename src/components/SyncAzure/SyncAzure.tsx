@@ -4,6 +4,8 @@ import { useState } from "react";
 
 const SyncAzure = () => {
   const [token, setToken] = useState("");
+  const [pat, setPat] = useState("");
+  const [storedPat, setStoredPat] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const navToRecentNote = () => {
@@ -15,7 +17,23 @@ const SyncAzure = () => {
     setToken(await invoke("login_to_azure"));
   }
 
-  //   const token = await window.__TAURI__.invoke<string>("loginToAzure");
+  async function syncDevopsPAT(pat: string) {
+    await invoke("store_devops_pat", { pat });
+  }
+
+  async function getDevopsPAT() {
+    setStoredPat(await invoke("get_devops_pat", { pat }));
+  }
+
+  async function getDevopsWorkItem() {
+    const workItem = await invoke("devops_get_work_items_pat");
+    console.log("DevOps Work Item:", workItem);
+  }
+
+  async function getDevopsWorkIdsItem() {
+    const workItem = await invoke("devops_get_users_work_item_ids_pat");
+    console.log("DevOps Work ids item:", workItem);
+  }
 
   return (
     <>
@@ -26,9 +44,32 @@ const SyncAzure = () => {
       <button className="syncAzureButton" onClick={() => syncAzure()}>
         Sync with Azure
       </button>
-      <button className="syncDevopsPATButton" onClick={() => syncAzure()}>
+      <button
+        className="syncDevopsPATButton"
+        onClick={() => syncDevopsPAT(pat)}
+      >
         Sync with DevOps PAT
       </button>
+      <input
+        type="text"
+        value={pat || ""}
+        onChange={(e) => setPat(e.target.value)}
+        placeholder="..."
+        // onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+      />
+      <button className="testPATButton" onClick={() => getDevopsPAT()}>
+        Get DevOps PAT
+      </button>
+      <button className="getWorkItemTest" onClick={() => getDevopsWorkItem()}>
+        Get Devops Work Item
+      </button>
+      <button
+        className="getuserWorkItemidsTest"
+        onClick={() => getDevopsWorkIdsItem()}
+      >
+        Get Devops Users Work Item Ids
+      </button>
+      <div>PAT: {storedPat}</div>
       <div>Token: {token}</div>
       {/* <button className="syncAzureButton" onClick={() => console.log(token)}>
         Log Token
