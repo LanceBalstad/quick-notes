@@ -1,84 +1,59 @@
-use crate::commands::devops_pat::basic_auth_header_for_pat;
-use reqwest::Client;
+use crate::commands::devops_helper::{call_get, call_post, call_wiql_query, extract_item_ids};
+use serde::Serialize;
 use tauri::{command, AppHandle};
-use tauri_plugin_keyring::KeyringExt;
 
-const SERVICE: &str = "quick-notes";
-const ACCOUNT: &str = "azure_devops_pat";
+#[derive(Serialize)]
+struct WorkItemsBatchRequestBody {
+    ids: Vec<i32>,
+    fields: Vec<&'static str>,
+}
 
-// Helper function to run WIQL query
-// Used with any query for work orders
-// AND used for validating PAT since the only api calls we have authorization to use are work order reads
-pub async fn run_wiql_query(pat: &str, wiql: &str) -> Result<String, String> {
-    let auth = basic_auth_header_for_pat(&pat);
+#[command]
+pub async fn devops_get_work_item_pat(app: AppHandle) -> Result<String, String> {
+    let endpoint = "https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitems/1?api-version=7.2-preview.3";
 
-    let client = Client::new();
-
-    let res = client
-        .post("https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/wiql?api-version=7.1")
-        .header("Authorization", auth)
-        .header("Content-Type", "application/json")
-        .body(format!(r#"{{"query": "{wiql}"}}"#))
-        .send()
-        .await
-        .map_err(|e| format!("Read error: {}", e))?;
-
-    let status = res.status();
-
-    if !status.is_success() {
-        return Err(format!(
-            "Azure DevOps returned returned an error status: {}",
-            status
-        ));
-    }
-
-    if status.as_u16() == 203 {
-        return Err("Pat does not have permission (203)".into());
-    }
-
-    let return_body = res
-        .text()
-        .await
-        .map_err(|e| format!("Read body error: {}", e))?;
+    let return_body = call_get(endpoint, &app).await?;
 
     Ok(return_body)
 }
 
 #[command]
-pub async fn devops_get_work_items_pat(app: AppHandle) -> Result<String, String> {
-    let pat = app
-        .keyring()
-        .get_password(SERVICE, ACCOUNT)
-        .map_err(|_| "Failed to access keychain".to_string())?
-        .ok_or("No PAT stored")?;
+pub async fn devops_get_users_work_items_pat(app: AppHandle) -> Result<String, String> {
+    let users_work_item_ids = devops_get_users_work_item_ids_pat(&app).await?;
 
-    let auth = basic_auth_header_for_pat(&pat);
+    devops_get_work_items_pat(&app, users_work_item_ids).await
+}
 
-    let client = Client::new();
-    let res = client
-        .get("https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitems/1?api-version=7.2-preview.3")
-        .header("Authorization", auth)
-        .send()
-        .await
-        .map_err(|e| format!("Read error: {}", e))?;
+#[command]
+async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<String, String> {
+    let endpoint =
+        "https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitemsbatch?api-version=7.1";
 
-    let return_body = res
-        .text()
-        .await
-        .map_err(|e| format!("Read body error: {}", e))?;
+    let body = WorkItemsBatchRequestBody {
+        ids: ids,
+        fields: vec![
+            "System.Id",
+            "System.Title",
+            "System.State",
+            "System.WorkItemType",
+            "Microsoft.VSTS.Scheduling.RemainingWork",
+        ],
+    };
+
+    let return_body = call_post(
+        endpoint,
+        &serde_json::to_string(&body).map_err(|e| e.to_string())?,
+        &app,
+    )
+    .await?;
 
     Ok(return_body)
 }
 
-#[command]
-pub async fn devops_get_users_work_item_ids_pat(app: AppHandle) -> Result<String, String> {
-    let pat = app
-        .keyring()
-        .get_password(SERVICE, ACCOUNT)
-        .map_err(|_| "Failed to access keychain".to_string())?
-        .ok_or("No PAT stored")?;
-
+pub async fn devops_get_users_work_item_ids_pat(app: &AppHandle) -> Result<Vec<i32>, String> {
     let wiql = "Select [System.Id] From WorkItems Where [System.AssignedTo] = @Me";
 
-    run_wiql_query(&pat, wiql).await
+    let response_body = call_wiql_query(wiql, app).await?;
+
+    extract_item_ids(&response_body)
 }

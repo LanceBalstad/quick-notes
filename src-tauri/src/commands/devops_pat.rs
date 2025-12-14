@@ -1,22 +1,14 @@
-use crate::commands::devops_api::run_wiql_query;
-use base64::{engine::general_purpose, Engine as _};
+use crate::commands::devops_helper::call_wiql_query;
 use tauri::{command, AppHandle};
 use tauri_plugin_keyring::KeyringExt;
 
 const SERVICE: &str = "quick-notes";
 const ACCOUNT: &str = "azure_devops_pat";
 
-// Helper function to build the Basic Auth header for PAT
-pub fn basic_auth_header_for_pat(pat: &str) -> String {
-    let to_encode = format!(":{}", pat);
-    let encoded = general_purpose::STANDARD.encode(to_encode.as_bytes());
-    format!("Basic {}", encoded)
-}
-
-async fn validate_pat(pat: &str) -> Result<(), String> {
+async fn validate_pat(app: &AppHandle) -> Result<(), String> {
     let wiql = "Select [System.Id] From WorkItems";
 
-    run_wiql_query(pat, wiql).await.map(|_| ())
+    call_wiql_query(wiql, app).await.map(|_| ())
 }
 
 #[command]
@@ -25,7 +17,7 @@ pub async fn store_devops_pat(app: AppHandle, pat: String) -> Result<String, Str
         return Err("PAT cannot be empty".into());
     }
 
-    validate_pat(&pat).await?;
+    validate_pat(&app).await?;
 
     app.keyring()
         .set_password(SERVICE, ACCOUNT, &pat)

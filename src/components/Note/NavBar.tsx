@@ -26,6 +26,10 @@ const NavBar = ({
     navigate("/sync-azure");
   };
 
+  const navToThirdPartyNotesPage = () => {
+    navigate("/third-party-notes");
+  };
+
   return (
     <>
       <div className="navbar">
@@ -62,6 +66,12 @@ const NavBar = ({
           onClick={() => navToSyncAzurePage()}
         >
           SyncAzure
+        </button>
+        <button
+          className="azureNotesButton"
+          onClick={() => navToThirdPartyNotesPage()}
+        >
+          AzureNotes
         </button>
       </div>
     </>
