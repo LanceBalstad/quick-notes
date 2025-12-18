@@ -10,6 +10,7 @@ interface NavBarProps {
   title: string;
   setTitle: (title: string) => void;
   onSoftDelete: () => void;
+  trashList: Note[];
 }
 
 const NavBar = ({
@@ -19,6 +20,7 @@ const NavBar = ({
   title,
   setTitle,
   onSoftDelete,
+  trashList,
 }: NavBarProps) => {
   const navigate = useNavigate();
 
@@ -73,6 +75,20 @@ const NavBar = ({
         >
           AzureNotes
         </button>
+
+        <select
+          title="Trashbin"
+          // onChange={(e) =>
+          //   onOpenNote(e.target.value ? Number(e.target.value) : undefined)
+          // }
+        >
+          <option value="">Trash Bin</option>
+          {trashList.map((trashNote) => (
+            <option key={trashNote.id} value={trashNote.id}>
+              {trashNote.title || ""}
+            </option>
+          ))}
+        </select>
       </div>
     </>
   );

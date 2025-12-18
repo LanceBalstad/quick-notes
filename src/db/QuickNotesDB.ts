@@ -3,7 +3,7 @@ import Dexie, { Table } from 'dexie';
 export interface Note {
   id?: number;
   noteId?: string;
-  azureId?: string;
+  azureId?: number;
   title: string;
   content?: string;
   createdAt: Date;

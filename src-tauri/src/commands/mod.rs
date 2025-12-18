@@ -2,3 +2,4 @@ pub mod azure_auth;
 pub mod devops_api;
 pub mod devops_helper;
 pub mod devops_pat;
+pub mod devops_sync;

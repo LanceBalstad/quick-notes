@@ -7,6 +7,7 @@ import {
   updateNote,
   getNote,
   isCurrentNameUnique,
+  getInactiveNotes,
 } from "../db/Services/NotesService";
 import { Note } from "../db/Services/NotesService";
 
@@ -15,14 +16,24 @@ function NotePage() {
   const [noteList, setNoteList] = React.useState<Note[]>([]);
   const [currentNoteId, setCurrentNoteId] = React.useState<number | null>(null);
   const [title, setTitle] = React.useState("");
+  const [trashList, setTrashList] = React.useState<Note[]>([]);
 
   const fetchNotes = async () => {
     const notes = await getActiveNotes();
     setNoteList(notes);
   };
 
+  const fetchTrashNotes = async () => {
+    const notes = await getInactiveNotes();
+    setTrashList(notes);
+  };
+
   useEffect(() => {
     fetchNotes();
+  }, []);
+
+  useEffect(() => {
+    fetchTrashNotes();
   }, []);
 
   const handleSave = async () => {
@@ -70,6 +81,7 @@ function NotePage() {
     if (currentNoteId) {
       await updateNote(currentNoteId, { softDeleted: true });
       await fetchNotes();
+      await fetchTrashNotes();
     }
   };
 
@@ -82,6 +94,7 @@ function NotePage() {
         title={title}
         setTitle={setTitle}
         onSoftDelete={handleSoftDelete}
+        trashList={trashList}
       />
       <Body body={body} setBody={setBody} />
     </>

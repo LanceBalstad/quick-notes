@@ -8,6 +8,7 @@ mod commands;
 use commands::azure_auth::login_to_azure;
 use commands::devops_api::{devops_get_users_work_items_pat, devops_get_work_item_pat};
 use commands::devops_pat::{delete_devops_pat, get_devops_pat, store_devops_pat};
+use commands::devops_sync::sync_notes_with_devops;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -20,7 +21,8 @@ pub fn run() {
             get_devops_pat,
             delete_devops_pat,
             devops_get_work_item_pat,
-            devops_get_users_work_items_pat
+            devops_get_users_work_items_pat,
+            sync_notes_with_devops
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

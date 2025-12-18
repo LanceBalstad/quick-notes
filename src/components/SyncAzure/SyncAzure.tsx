@@ -30,11 +30,6 @@ const SyncAzure = () => {
     console.log("DevOps Work Item:", workItem);
   }
 
-  async function getDevopsWorkIdsItem() {
-    const workItem = await invoke("devops_get_users_work_item_ids_pat");
-    console.log("DevOps Work ids item:", workItem);
-  }
-
   return (
     <>
       SyncAzure
@@ -62,12 +57,6 @@ const SyncAzure = () => {
       </button>
       <button className="getWorkItemTest" onClick={() => getDevopsWorkItem()}>
         Get Devops Work Item
-      </button>
-      <button
-        className="getuserWorkItemidsTest"
-        onClick={() => getDevopsWorkIdsItem()}
-      >
-        Get Devops Users Work Item Ids
       </button>
       <div>PAT: {storedPat}</div>
       <div>Token: {token}</div>
