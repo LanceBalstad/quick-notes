@@ -1,7 +1,7 @@
 import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface NavBarProps {
   // Save logic is in the NotePage component to grab body value
@@ -35,6 +35,27 @@ const NavBar = ({
 
   const [isNoteListOpen, setIsNoteListOpen] = useState(false);
 
+  const titleComboRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        titleComboRef.current &&
+        !titleComboRef.current.contains(event.target as Node)
+      ) {
+        setIsNoteListOpen(false);
+      }
+    }
+
+    if (isNoteListOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isNoteListOpen]);
+
   return (
     <>
       <div className="navbar">
@@ -43,7 +64,7 @@ const NavBar = ({
         <button className="saveButton" onClick={() => onSave()}>
           Save
         </button>
-        <div className="title-combo">
+        <div className="title-combo" ref={titleComboRef}>
           <input
             type="text"
             value={title || ""}
