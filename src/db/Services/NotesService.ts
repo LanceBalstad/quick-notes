@@ -8,12 +8,6 @@ export const addNote = async (note: Omit<Note, 'id' | 'noteId'>) => {
   return await db.notes.add({...note, noteId: crypto.randomUUID()});
 };
 
-export const restoreNote = async (id: number) => {
-  return await db.notes.update(id, {
-    softDeleted: false,
-  });
-};
-
 // Read
 export const getNote = async (id: number): Promise<Note | undefined> => {
   return await db.notes.get(id);
@@ -51,6 +45,10 @@ export const updateNoteByNoteId = async (noteId: string, updates: Partial<Note>)
   await db.notes.where('noteId').equals(noteId).modify(updates);
 };
 
+export const recoverNote = async (id: number) => {
+  return await db.notes.update(id, { softDeleted: false });
+}
+
 // Delete
 export const deleteNote = async (id: number) => {
   return await db.notes.delete(id);
@@ -62,5 +60,9 @@ export const softDeleteNote = async (id: number) => {
 
 export const softDeleteNotesByAzureIds = async (azureId: number) => {
   await db.notes.where('azureId').equals(azureId).modify({ softDeleted: true });
+}
+
+export const hardDeleteNote = async (id: number) => {
+  return await db.notes.delete(id);
 }
 

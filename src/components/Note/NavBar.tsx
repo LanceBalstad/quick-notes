@@ -10,7 +10,7 @@ import {
 } from "../../db/Services/NotesService";
 
 interface NavBarProps {
-  // Save logic is in the NotePage component to grab body value
+  // multiple methods, such as onSave, is in the NotePage component to grab body value
   onSave: () => void;
   notes: Note[];
   onOpenNote: (noteId?: number) => void;
@@ -20,6 +20,8 @@ interface NavBarProps {
   trashList: Note[];
   lastSavedAt?: Date;
   isDeleted?: boolean;
+  onHardDelete: (noteId?: number) => void;
+  onRecoverNote: (noteId?: number) => void;
 }
 
 const NavBar = ({
@@ -32,6 +34,8 @@ const NavBar = ({
   trashList,
   lastSavedAt,
   isDeleted,
+  onHardDelete,
+  onRecoverNote,
 }: NavBarProps) => {
   const navigate = useNavigate();
 
@@ -306,7 +310,7 @@ const NavBar = ({
                 </svg>
               </button>
 
-              {isTrashListOpen && (
+              {(isTrashListOpen && trashList.length != 0) && (
                 <div className="combo-dropdown">
                   {trashList.map((note) => (
                     <div
@@ -318,6 +322,24 @@ const NavBar = ({
                       }}
                     >
                       {note.title || "Untitled"}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRecoverNote(note.id);
+                          setIsTrashListOpen(false);
+                        }}
+                      >
+                        Recover
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onHardDelete(note.id);
+                          setIsTrashListOpen(false);
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   ))}
                 </div>

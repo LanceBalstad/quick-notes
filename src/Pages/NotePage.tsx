@@ -8,6 +8,9 @@ import {
   getNote,
   isCurrentNameUnique,
   getInactiveNotes,
+  softDeleteNote,
+  hardDeleteNote,
+  recoverNote,
 } from "../db/Services/NotesService";
 import { Note } from "../db/Services/NotesService";
 
@@ -109,11 +112,31 @@ function NotePage() {
 
   const handleSoftDelete = async () => {
     if (currentNoteId) {
-      await updateNote(currentNoteId, { softDeleted: true });
+      await softDeleteNote(currentNoteId);
       await fetchNotes();
       await fetchTrashNotes();
 
       handleOpenNote();
+    }
+  };
+
+  const handleRecoverNote = async (noteId?: number) => {
+    if (noteId) {
+      await recoverNote(noteId);
+      await fetchNotes();
+      await fetchTrashNotes();
+
+      handleOpenNote(noteId);
+    }
+  }
+
+  const handleHardDelete = async (noteId?: number) => {
+    if (noteId) {
+      await hardDeleteNote(noteId);
+      await fetchNotes();
+      await fetchTrashNotes();
+
+      handleOpenNote(noteId);
     }
   };
 
@@ -131,6 +154,8 @@ function NotePage() {
             trashList={trashList}
             lastSavedAt={currentNote?.lastSavedAt}
             isDeleted={currentNoteId != undefined && !currentNote}
+            onHardDelete={handleHardDelete}
+            onRecoverNote={handleRecoverNote}
           />
         </div>
         <Body
