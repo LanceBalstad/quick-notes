@@ -1,9 +1,9 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { RouterProvider } from "react-router-dom";
 import { Router } from "./Routing/Router";
+import TitleBar from "./components/TitleBar/TitleBar";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
@@ -21,7 +21,14 @@ function App() {
 
   return (
     <>
-      <RouterProvider router={Router} />
+      <div className="app-root">
+        <div className="titleBarWrapper">
+          <TitleBar />
+        </div>
+        <div className="contentWrapper">
+          <RouterProvider router={Router} />
+        </div>
+      </div>
     </>
   );
 }

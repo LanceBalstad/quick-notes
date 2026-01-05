@@ -2,6 +2,12 @@ import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getNotesAzureIds } from "../../db/Services/NotesService";
+import {
+  addNote,
+  softDeleteNotesByAzureIds,
+} from "../../db/Services/NotesService";
 
 interface NavBarProps {
   // Save logic is in the NotePage component to grab body value
@@ -12,6 +18,8 @@ interface NavBarProps {
   setTitle: (title: string) => void;
   onSoftDelete: () => void;
   trashList: Note[];
+  lastSavedAt?: Date;
+  isDeleted?: boolean;
 }
 
 const NavBar = ({
@@ -22,6 +30,8 @@ const NavBar = ({
   setTitle,
   onSoftDelete,
   trashList,
+  lastSavedAt,
+  isDeleted,
 }: NavBarProps) => {
   const navigate = useNavigate();
 
@@ -35,101 +45,286 @@ const NavBar = ({
 
   const [isNoteListOpen, setIsNoteListOpen] = useState(false);
 
+  const [isTrashListOpen, setIsTrashListOpen] = useState(false);
+
   const titleComboRef = useRef<HTMLDivElement | null>(null);
+
+  const trashComboRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
-      if (
-        titleComboRef.current &&
-        !titleComboRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+
+      const clickedOutsideTitle =
+        titleComboRef.current && !titleComboRef.current.contains(target);
+
+      const clickedOutsideTrash =
+        trashComboRef.current && !trashComboRef.current.contains(target);
+
+      if (clickedOutsideTitle) {
         setIsNoteListOpen(false);
+      }
+
+      if (clickedOutsideTrash) {
+        setIsTrashListOpen(false);
       }
     }
 
-    if (isNoteListOpen) {
+    if (isNoteListOpen || isTrashListOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [isNoteListOpen]);
+  }, [isNoteListOpen, isTrashListOpen]);
+
+  type NoteToCreate = {
+    azure_id: number;
+    title: string;
+  };
+
+  type NoteToDelete = {
+    azure_id: number;
+  };
+
+  type SyncRequest = {
+    to_create: NoteToCreate[];
+    to_delete: NoteToDelete[];
+  };
+
+  async function syncDevopsNotes() {
+    const quickNotes = await getNotesAzureIds();
+    const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
+      existingAzureIds: quickNotes,
+    });
+
+    for (const note of syncResult.to_create) {
+      await addNote({
+        title: note.title,
+        azureId: note.azure_id,
+        createdAt: new Date(),
+        softDeleted: false,
+      });
+    }
+
+    for (const note of syncResult.to_delete) {
+      await softDeleteNotesByAzureIds(note.azure_id);
+    }
+  }
 
   return (
     <>
       <div className="navbar">
-        <button className="fileButton">File</button>
-        <button className="editButton">edit</button>
-        <button className="saveButton" onClick={() => onSave()}>
-          Save
+        <button className="file-button">
+          {/* file button icon path */}
+          <svg
+            width="36"
+            height="41"
+            viewBox="0 0 36 41"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect width="36" height="41" rx="5" fill="#193232" />
+            <path
+              className="file-dot"
+              d="M18 22.2083C18.8284 22.2083 19.5 21.4435 19.5 20.5C19.5 19.5565 18.8284 18.7917 18 18.7917C17.1716 18.7917 16.5 19.5565 16.5 20.5C16.5 21.4435 17.1716 22.2083 18 22.2083Z"
+              stroke="#A8BFBC"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              className="file-dot"
+              d="M18 10.25C18.8284 10.25 19.5 9.48515 19.5 8.54167C19.5 7.59818 18.8284 6.83333 18 6.83333C17.1716 6.83333 16.5 7.59818 16.5 8.54167C16.5 9.48515 17.1716 10.25 18 10.25Z"
+              stroke="#A8BFBC"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              className="file-dot"
+              d="M18 34.1667C18.8284 34.1667 19.5 33.4018 19.5 32.4583C19.5 31.5148 18.8284 30.75 18 30.75C17.1716 30.75 16.5 31.5148 16.5 32.4583C16.5 33.4018 17.1716 34.1667 18 34.1667Z"
+              stroke="#A8BFBC"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
-        <div className="title-combo" ref={titleComboRef}>
-          <input
-            type="text"
-            value={title || ""}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled..."
-          />
 
-          <button className="title_dropdown_button" onClick={() => setIsNoteListOpen((d) => !d)}aria-label="Open notes">
-            ▼
+        <div className="dropdown-button-combo" ref={titleComboRef}>
+          <button
+            className="dropdown-button"
+            onClick={() => setIsNoteListOpen((d) => !d)}
+            aria-label="Open notes"
+          >
+            {/* dropdown button icon path */}
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 26 26"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M13 16.6833L6.5 10.1833L8.01667 8.66667L13 13.65L17.9833 8.66667L19.5 10.1833L13 16.6833Z" />
+            </svg>
           </button>
 
           {isNoteListOpen && (
-            <div className="title-dropdown">
-              <div 
-              className="dropdown-item" 
-              onClick={() => {
-                onOpenNote(undefined);
-                setIsNoteListOpen(false);
-              }}>
+            <div className="combo-dropdown">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  onOpenNote(undefined);
+                  setIsNoteListOpen(false);
+                }}
+              >
                 New Note
               </div>
 
               {notes.map((note) => (
-                <div 
-                key={note.id}
-                className="dropdown-item"
-                onClick={() => {
-                  onOpenNote(note.id);
-                  setIsNoteListOpen(false);
-                }}>
+                <div
+                  key={note.id}
+                  className="dropdown-item"
+                  onClick={() => {
+                    onOpenNote(note.id);
+                    setIsNoteListOpen(false);
+                  }}
+                >
                   {note.title || "Untitled"}
                 </div>
               ))}
             </div>
           )}
+
+          <input
+            type="text"
+            value={title || ""}
+            readOnly={isDeleted}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled..."
+          />
         </div>
-        <button className="deleteButton" onClick={() => onSoftDelete()}>
-          Delete
-        </button>
-        <button
+
+        {/* <button
           className="syncAzureButton"
           onClick={() => navToSyncAzurePage()}
         >
           SyncAzure
-        </button>
-        <button
-          className="azureNotesButton"
-          onClick={() => navToThirdPartyNotesPage()}
-        >
-          AzureNotes
-        </button>
+        </button> */}
 
-        <select
-          title="Trashbin"
-          // onChange={(e) =>
-          //   onOpenNote(e.target.value ? Number(e.target.value) : undefined)
-          // }
-        >
-          <option value="">Trash Bin</option>
-          {trashList.map((trashNote) => (
-            <option key={trashNote.id} value={trashNote.id}>
-              {trashNote.title || ""}
-            </option>
-          ))}
-        </select>
+        <div className="right-buttons">
+          {!isDeleted && (
+            <div className="save-group">
+              <button className="save-button" onClick={() => onSave()}>
+                {/* Save button icon path */}
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22.6667 28V17.3333H9.33333V28M9.33333 4V10.6667H20M25.3333 28H6.66667C5.95942 28 5.28115 27.719 4.78105 27.219C4.28095 26.7189 4 26.0406 4 25.3333V6.66667C4 5.95942 4.28095 5.28115 4.78105 4.78105C5.28115 4.28095 5.95942 4 6.66667 4H21.3333L28 10.6667V25.3333C28 26.0406 27.719 26.7189 27.219 27.219C26.7189 27.719 26.0406 28 25.3333 28Z"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <div className="last-saved">
+                <span>LAST SAVED</span>
+                <span className="last-saved-date">
+                  {lastSavedAt ? lastSavedAt.toLocaleDateString() : "UNSAVED"}
+                </span>
+                <span className="last-saved-time">
+                  {lastSavedAt ? lastSavedAt.toLocaleTimeString() : ""}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="sync-group">
+            <button
+              className="sync-azure-notes-button"
+              onClick={() => syncDevopsNotes()}
+            >
+              {/* Sync button icon path */}
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M15.9998 21.3333L21.3332 16M21.3332 16L15.9998 10.6667M21.3332 16L10.6665 16M29.3332 16C29.3332 23.3638 23.3636 29.3333 15.9998 29.3333C8.63604 29.3333 2.6665 23.3638 2.6665 16C2.6665 8.6362 8.63604 2.66667 15.9998 2.66667C23.3636 2.66667 29.3332 8.6362 29.3332 16Z"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className="delete-group">
+            <div className="dropdown-button-combo" ref={trashComboRef}>
+              <button className="delete-button" onClick={() => onSoftDelete()}>
+                {/* Trash bin icon path */}
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 8H6.66667M6.66667 8H28M6.66667 8L6.66667 26.6667C6.66667 27.3739 6.94762 28.0522 7.44772 28.5523C7.94781 29.0524 8.62609 29.3333 9.33333 29.3333H22.6667C23.3739 29.3333 24.0522 29.0524 24.5523 28.5523C25.0524 28.0522 25.3333 27.3739 25.3333 26.6667V8M10.6667 8V5.33333C10.6667 4.62609 10.9476 3.94781 11.4477 3.44771C11.9478 2.94762 12.6261 2.66667 13.3333 2.66667H18.6667C19.3739 2.66667 20.0522 2.94762 20.5523 3.44771C21.0524 3.94781 21.3333 4.62609 21.3333 5.33333V8M13.3333 14.6667V22.6667M18.6667 14.6667V22.6667"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <button
+                className="dropdown-button"
+                onClick={() => setIsTrashListOpen((d) => !d)}
+                aria-label="Open notes"
+              >
+                {/* dropdown button icon path */}
+                <svg
+                  width="26"
+                  height="26"
+                  viewBox="0 0 26 26"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M13 16.6833L6.5 10.1833L8.01667 8.66667L13 13.65L17.9833 8.66667L19.5 10.1833L13 16.6833Z" />
+                </svg>
+              </button>
+
+              {isTrashListOpen && (
+                <div className="combo-dropdown">
+                  {trashList.map((note) => (
+                    <div
+                      key={note.id}
+                      className="dropdown-item"
+                      onClick={() => {
+                        onOpenNote(note.id);
+                        setIsTrashListOpen(false);
+                      }}
+                    >
+                      {note.title || "Untitled"}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

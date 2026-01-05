@@ -4,9 +4,18 @@ import "./Body.css";
 interface BodyProps {
   body: string;
   setBody: (body: string) => void;
+  onSave: () => Promise<void>;
+  setHasUserEdited: (edited: boolean) => void;
+  isDeleted?: boolean;
 }
 
-const Body = ({ body, setBody }: BodyProps) => {
+const Body = ({
+  body,
+  setBody,
+  onSave,
+  setHasUserEdited,
+  isDeleted,
+}: BodyProps) => {
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
   // Get info about the current line (leading whitespace, first char, dash position)
@@ -52,25 +61,45 @@ const Body = ({ body, setBody }: BodyProps) => {
     );
   };
 
-  const handledDashList = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleDashList = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textAreaEl =
       textareaRef.current ?? (e.currentTarget as HTMLTextAreaElement);
     if (!textAreaEl) return;
 
     const { selectionStart = 0, selectionEnd = 0, value } = textAreaEl;
-    const before = value.slice(0, selectionStart);
+    let before = value.slice(0, selectionStart);
     const after = value.slice(selectionEnd);
 
     const lineInfo = getCurrentLineInfo(before);
 
-    // If the current line started with "-", then start the new line with "-"
-    if (lineInfo.firstCharInLineMinusWhiteSpace === "-") {
-      e.preventDefault();
-      const insert = "\n" + lineInfo.leadingWhitespace + "-";
-      const newValue = before + insert + after;
-      updateTextAreaState(newValue, before.length + insert.length);
+    if (!isListLine(lineInfo)) return; // only continue if it is a list line
+
+    e.preventDefault();
+
+    //if the line is only a dash, un indent or remove the dash
+    if (lineInfo.trimmedLine === "-") {
+      // if there is leading whitespace, remove one level of indentation
+      if (lineInfo.leadingWhitespace.length > 0) {
+        before =
+          before.slice(0, lineInfo.lineStart) +
+          lineInfo.leadingWhitespace.slice(0, -1) +
+          "-";
+
+        updateTextAreaState(before + after, before.length);
+        return;
+      }
+
+      // if we are at the start of the line, remove the dash
+      before = before.slice(0, lineInfo.lineStart);
+      updateTextAreaState(before + after, before.length);
       return;
     }
+
+    // If the current line started with "-" and there is content, then start the new line with "-"
+    const insert = "\n" + lineInfo.leadingWhitespace + "-";
+    const newValue = before + insert + after;
+    updateTextAreaState(newValue, before.length + insert.length);
+    return;
   };
 
   const handleTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -141,6 +170,11 @@ const Body = ({ body, setBody }: BodyProps) => {
     }
   };
 
+  const handleSave = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    await onSave();
+  };
+
   // We only want to handle certain keys
   const handleCustomKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Tab") {
@@ -148,11 +182,15 @@ const Body = ({ body, setBody }: BodyProps) => {
     }
 
     if (e.key === "Enter") {
-      handledDashList(e);
+      handleDashList(e);
     }
 
     if (e.key === "Backspace") {
       handleDeleteDash(e);
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      handleSave(e);
     }
   };
 
@@ -162,9 +200,12 @@ const Body = ({ body, setBody }: BodyProps) => {
         <textarea
           ref={textareaRef}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          readOnly={isDeleted}
+          onChange={(e) => {
+            setBody(e.target.value), setHasUserEdited(true);
+          }}
           onKeyDown={handleCustomKeyDown}
-          title="Note body"
+          aria-label="Note body"
         />
       </div>
     </>

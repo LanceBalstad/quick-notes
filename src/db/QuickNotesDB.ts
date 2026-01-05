@@ -8,6 +8,7 @@ export interface Note {
   content?: string;
   createdAt: Date;
   lastSyncedAt?: Date;
+  lastSavedAt?: Date;
   softDeleted: boolean;
 }
 
