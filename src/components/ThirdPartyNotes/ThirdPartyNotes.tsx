@@ -2,9 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { getNotesAzureIds } from "../../db/Services/NotesService";
 import {
-  addNote,
-  softDeleteNotesByAzureIds,
-} from "../../db/Services/NotesService";
+  addNoteWithNotification,
+  softDeleteNotesWithNotificationUsingAzureID,
+} from "../../Helpers/NoteHelper";
 
 const ThirdPartyNotes = () => {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const ThirdPartyNotes = () => {
     });
 
     for (const note of syncResult.to_create) {
-      await addNote({
+      await addNoteWithNotification({
         title: note.title,
         azureId: note.azure_id,
         createdAt: new Date(),
@@ -48,7 +48,7 @@ const ThirdPartyNotes = () => {
     }
 
     for (const note of syncResult.to_delete) {
-      await softDeleteNotesByAzureIds(note.azure_id);
+      await softDeleteNotesWithNotificationUsingAzureID(note.azure_id);
     }
   }
 

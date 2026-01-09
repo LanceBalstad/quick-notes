@@ -8,11 +8,15 @@ import {
   getNote,
   isCurrentNameUnique,
   getInactiveNotes,
-  softDeleteNote,
   hardDeleteNote,
   recoverNote,
 } from "../db/Services/NotesService";
 import { Note } from "../db/Services/NotesService";
+import {
+  softDeleteNoteWithNotification,
+  recoverNoteNoteWithNotification,
+  hardDeleteNotesWithNotification,
+} from "../Helpers/NoteHelper";
 
 function NotePage() {
   const [body, setBody] = React.useState("");
@@ -112,7 +116,10 @@ function NotePage() {
 
   const handleSoftDelete = async () => {
     if (currentNoteId) {
-      await softDeleteNote(currentNoteId);
+      await softDeleteNoteWithNotification(
+        currentNoteId,
+        "NOTE_SENT_TO_TRASH_BY_USER"
+      );
       await fetchNotes();
       await fetchTrashNotes();
 
@@ -122,17 +129,17 @@ function NotePage() {
 
   const handleRecoverNote = async (noteId?: number) => {
     if (noteId) {
-      await recoverNote(noteId);
+      await recoverNoteNoteWithNotification(noteId);
       await fetchNotes();
       await fetchTrashNotes();
 
       handleOpenNote(noteId);
     }
-  }
+  };
 
   const handleHardDelete = async (noteId?: number) => {
     if (noteId) {
-      await hardDeleteNote(noteId);
+      await hardDeleteNotesWithNotification(noteId);
       await fetchNotes();
       await fetchTrashNotes();
 

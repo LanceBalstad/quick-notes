@@ -4,10 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getNotesAzureIds } from "../../db/Services/NotesService";
+import { getNotificationsByNoteId } from "../../db/Services/NotificationsService";
 import {
-  addNote,
-  softDeleteNotesByAzureIds,
-} from "../../db/Services/NotesService";
+  addNoteWithNotification,
+  softDeleteNotesWithNotificationUsingAzureID,
+} from "../../Helpers/NoteHelper";
+import {
+  checkNotificationsForNotes,
+  deleteNotificationsForNotes,
+} from "../../Helpers/NotificationHelper";
 
 interface NavBarProps {
   // multiple methods, such as onSave, is in the NotePage component to grab body value
@@ -51,9 +56,37 @@ const NavBar = ({
 
   const [isTrashListOpen, setIsTrashListOpen] = useState(false);
 
+  const [trashHasNotifications, setTrashHasNotifications] = useState(false);
+
+  const [noteListHasNotifications, setNoteListHasNotifications] =
+    useState(false);
+
+  const [noteNotifications, setNoteNotifications] = useState<
+    Record<number, boolean>
+  >({});
+
   const titleComboRef = useRef<HTMLDivElement | null>(null);
 
   const trashComboRef = useRef<HTMLDivElement | null>(null);
+
+  const NotificationIcon = () => (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="inline-notification"
+    >
+      <rect width="18" height="18" rx="9" fill="#8D9265" />
+      <path
+        d="M9 6V9M9 12H9.0075"
+        stroke="#0A1E1D"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -97,6 +130,41 @@ const NavBar = ({
     to_delete: NoteToDelete[];
   };
 
+  useEffect(() => {
+    const run = async () => {
+      setTrashHasNotifications(await checkNotificationsForNotes(trashList));
+    };
+
+    run();
+  }, [trashList]);
+
+  useEffect(() => {
+    loadNotificationsForNotes(notes);
+  }, [notes]);
+
+  useEffect(() => {
+    loadNotificationsForNotes(trashList);
+  }, [trashList]);
+
+  useEffect(() => {
+    if (!isTrashListOpen) {
+      // dropdown just closed
+      deleteNotificationsForNotes(trashList).then(() => {
+        setTrashHasNotifications(false);
+        loadNotificationsForNotes(trashList);
+      });
+    }
+  }, [isTrashListOpen]);
+
+  useEffect(() => {
+    if (!isNoteListOpen) {
+      deleteNotificationsForNotes(notes).then(() => {
+        setNoteListHasNotifications(false);
+        loadNotificationsForNotes(notes);
+      });
+    }
+  }, [isNoteListOpen]);
+
   async function syncDevopsNotes() {
     const quickNotes = await getNotesAzureIds();
     const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
@@ -104,7 +172,7 @@ const NavBar = ({
     });
 
     for (const note of syncResult.to_create) {
-      await addNote({
+      await addNoteWithNotification({
         title: note.title,
         azureId: note.azure_id,
         createdAt: new Date(),
@@ -113,8 +181,23 @@ const NavBar = ({
     }
 
     for (const note of syncResult.to_delete) {
-      await softDeleteNotesByAzureIds(note.azure_id);
+      await softDeleteNotesWithNotificationUsingAzureID(note.azure_id);
     }
+
+    // resync notifications
+    setNoteListHasNotifications(await checkNotificationsForNotes(notes));
+    setTrashHasNotifications(await checkNotificationsForNotes(trashList));
+  }
+
+  async function loadNotificationsForNotes(notes: Note[]) {
+    const entries = await Promise.all(
+      notes.map(async (note) => [
+        note.id!,
+        (await getNotificationsByNoteId(note.id!)).length > 0,
+      ])
+    );
+
+    setNoteNotifications(Object.fromEntries(entries));
   }
 
   return (
@@ -157,6 +240,37 @@ const NavBar = ({
           </svg>
         </button>
 
+        <div
+          className={`note-list-notification ${
+            noteListHasNotifications ? "visible" : ""
+          }`}
+        >
+          {/* notification icon path */}
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g clipPath="url(#clip0_13_201)">
+              <rect width="18" height="18" rx="9" fill="#8D9265" />
+              <path
+                d="M9 6V9M9 12H9.0075M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z"
+                stroke="#0A1E1D"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+            <defs>
+              <clipPath id="clip0_13_201">
+                <rect width="18" height="18" rx="9" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+        </div>
+
         <div className="dropdown-button-combo" ref={titleComboRef}>
           <button
             className="dropdown-button"
@@ -190,13 +304,15 @@ const NavBar = ({
               {notes.map((note) => (
                 <div
                   key={note.id}
-                  className="dropdown-item"
+                  className="dropdown-item note-row"
                   onClick={() => {
                     onOpenNote(note.id);
                     setIsNoteListOpen(false);
                   }}
                 >
-                  {note.title || "Untitled"}
+                  <span className="note-title">{note.title || "Untitled"}</span>
+
+                  {noteNotifications[note.id!] && <NotificationIcon />}
                 </div>
               ))}
             </div>
@@ -275,7 +391,7 @@ const NavBar = ({
           </div>
           <div className="delete-group">
             <div className="dropdown-button-combo" ref={trashComboRef}>
-              <button className="delete-button" onClick={() => onSoftDelete()}>
+              <button className="delete-button" onClick={onSoftDelete}>
                 {/* Trash bin icon path */}
                 <svg
                   width="32"
@@ -293,53 +409,92 @@ const NavBar = ({
                 </svg>
               </button>
 
-              <button
-                className="dropdown-button"
-                onClick={() => setIsTrashListOpen((d) => !d)}
-                aria-label="Open notes"
+              <div className="delete-dropdown-button">
+                <button
+                  className="dropdown-button"
+                  onClick={() => setIsTrashListOpen((d) => !d)}
+                  aria-label="Open notes"
+                >
+                  {/* dropdown button icon path */}
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 26 26"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M13 16.6833L6.5 10.1833L8.01667 8.66667L13 13.65L17.9833 8.66667L19.5 10.1833L13 16.6833Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div
+                className={`trash-list-notification ${
+                  trashHasNotifications ? "visible" : ""
+                }`}
               >
-                {/* dropdown button icon path */}
+                {/* notification icon path */}
                 <svg
-                  width="26"
-                  height="26"
-                  viewBox="0 0 26 26"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path d="M13 16.6833L6.5 10.1833L8.01667 8.66667L13 13.65L17.9833 8.66667L19.5 10.1833L13 16.6833Z" />
+                  <g clipPath="url(#clip0_13_201)">
+                    <rect width="18" height="18" rx="9" fill="#8D9265" />
+                    <path
+                      d="M9 6V9M9 12H9.0075M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5C13.1421 1.5 16.5 4.85786 16.5 9Z"
+                      stroke="#0A1E1D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_13_201">
+                      <rect width="18" height="18" rx="9" fill="white" />
+                    </clipPath>
+                  </defs>
                 </svg>
-              </button>
+              </div>
 
-              {(isTrashListOpen && trashList.length != 0) && (
+              {isTrashListOpen && trashList.length != 0 && (
                 <div className="combo-dropdown">
                   {trashList.map((note) => (
                     <div
                       key={note.id}
-                      className="dropdown-item"
+                      className="dropdown-item trash-row"
                       onClick={() => {
                         onOpenNote(note.id);
                         setIsTrashListOpen(false);
                       }}
                     >
-                      {note.title || "Untitled"}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRecoverNote(note.id);
-                          setIsTrashListOpen(false);
-                        }}
-                      >
-                        Recover
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onHardDelete(note.id);
-                          setIsTrashListOpen(false);
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <span className="note-title">
+                        {note.title || "Untitled"}
+                      </span>
+                      <div className="dropdown-item-buttons">
+                        {noteNotifications[note.id!] && <NotificationIcon />}
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRecoverNote(note.id);
+                            setIsTrashListOpen(false);
+                          }}
+                        >
+                          Recover
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onHardDelete(note.id);
+                            setIsTrashListOpen(false);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
