@@ -14,8 +14,6 @@
   display: inline-flex;
   align-items: center;
   flex: 1;
-  /* min-width: 400px;
-  max-width: 600px; */
   min-width: 0;
 }
 
@@ -86,7 +84,6 @@
 .delete-button:hover svg,
 .file-button:hover .file-dot,
 .dropdown-button:hover svg {
-  /* stroke: #8D9265; */
   stroke: #65706f;
 }
 
@@ -116,9 +113,9 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  /* min-width: 100%; */
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: visible;
   background: #9CB6B7;
   border: 1px solid #000000;
   z-index: 1000;
@@ -175,7 +172,6 @@
 }
 
 .dropdown-item button {
-  /* background: transparent; */
   border: none;
   cursor: pointer;
   padding: 2px 4px;
@@ -201,31 +197,8 @@
   margin-bottom: -8px;
 }
 
-/* .trash-list-notification {
-  visibility: hidden;
-  transition: visibility 0.2s ease-in-out;
-  margin-top: -20px;
-  pointer-events: none;
-}
-
-.trash-list-notification.visible {
-  visibility: visible;
-}
-
-.note-list-notification {
-  visibility: hidden;
-  transition: visibility 0.2s ease-in-out;
-  margin-top: -20px;
-  pointer-events: none;
-}
-
-.note-list-notification.visible {
-  visibility: visible;
-} */
-
 .note-list-notification,
 .trash-list-notification {
-  /* position: absolute; */
   margin-top: -20px;
   transform: scale(0);
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -267,6 +240,42 @@
 .inline-notification {
   flex-shrink: 0;
 }
+
+.notification-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-tooltip {
+  position: fixed;
+  background: #0a1e1d;
+  color: #a8bfbc;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 240px;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  transform: translate(calc(-100% - 10px));
+}
+
+.notification-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+
+.notification-item:last-child {
+  margin-bottom: 0;
+}
+
+.notification-date {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 
 
 

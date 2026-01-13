@@ -1,27 +1,31 @@
 // utils/notificationFormatter.ts
-import { getAllNotifications, Notification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
-import { Note } from "../db/QuickNotesDB";
+import { getAllNotifications, NoteNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
+import { getNote } from "../db/Services/NotesService";
+import { Note, NotificationType } from "../db/QuickNotesDB";
 
 export function formatNotification(
-  notification: Notification,
-  note?: Note
+  notificationType: NotificationType,
+  noteId?: number
 ): string {
-  switch (notification.notificationType) {
-    case "NOTE_CREATED_BY_SYNC":
-      return `Note "${note?.title ?? "Untitled"}" was created at "${note?.createdAt ?? "Unknown Time"} from Azure Devops sync"`;
+  if (noteId){
+    switch (notificationType) {
+      case "NOTE_CREATED_BY_SYNC":
+        return `Note was created by sync process"`;
 
-    case "NOTE_SENT_TO_TRASH_BY_SYNC":
-      return `Note "${note?.title ?? "Untitled"}" was deleted at "${note?.createdAt ?? "Unknown Time"} from Azure Devops sync"`;
+      case "NOTE_SENT_TO_TRASH_BY_SYNC":
+        return `Note was deleted by sync process`;
 
-    case "NOTE_SENT_TO_TRASH_BY_USER":
-        return `Note "${note?.title ?? "Untitled"}" was deleted at "${note?.createdAt ?? "Unknown Time"} manually"`;
+      case "NOTE_SENT_TO_TRASH_BY_USER":
+          return `Note was moved to trash manually`;
 
-    case "NOTE_DELETED_SOON":
-        return `Note "${note?.title ?? "Untitled"}" will be permanently deleted in "${note?.createdAt ?? "Unknown Time"} hours`;
+      case "NOTE_DELETED_SOON":
+          return `Note will be permanently deleted soon`;
 
-    default:
-      return "You have a new notification";
+      default:
+        return "You have a new notification";
+    }
   }
+  return "";
 }
 
 export const checkNotificationsForNotes = async (notes: Note[]): Promise<boolean> => {

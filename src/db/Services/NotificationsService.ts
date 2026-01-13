@@ -1,23 +1,23 @@
-import { db, Notification as NotificationType } from '../QuickNotesDB';
+import { db, NoteNotification as NoteNotificationType } from '../QuickNotesDB';
 
 // Re-export Note type so other files can use it
-export type Notification = NotificationType;
+export type NoteNotification = NoteNotificationType;
 
 // Create
-export const addNotification = async (notification: Omit<Notification, 'id'>) => {
+export const addNotification = async (notification: Omit<NoteNotification, 'id'>) => {
   return await db.notifications.add({...notification});
 };
 
 // Read
-export const getNotification = async (id: number): Promise<Notification | undefined> => {
+export const getNotification = async (id: number): Promise<NoteNotification | undefined> => {
   return await db.notifications.get(id);
 };
 
-export const getAllNotifications = async (): Promise<Notification[]> => {
+export const getAllNotifications = async (): Promise<NoteNotification[]> => {
   return await db.notifications.toArray();
 };
 
-export const getNotificationsByNoteId = async (noteId: number): Promise<(Notification[])> => {
+export const getNotificationsByNoteId = async (noteId: number): Promise<(NoteNotification[])> => {
   return await db.notifications.filter(notif => notif.noteId === noteId).toArray();
 }
 

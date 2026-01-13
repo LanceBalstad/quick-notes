@@ -4,7 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getNotesAzureIds } from "../../db/Services/NotesService";
-import { getNotificationsByNoteId } from "../../db/Services/NotificationsService";
+import {
+  getNotificationsByNoteId,
+  NoteNotification,
+} from "../../db/Services/NotificationsService";
 import {
   addNoteWithNotification,
   softDeleteNotesWithNotificationUsingAzureID,
@@ -12,6 +15,7 @@ import {
 import {
   checkNotificationsForNotes,
   deleteNotificationsForNotes,
+  formatNotification,
 } from "../../Helpers/NotificationHelper";
 
 interface NavBarProps {
@@ -65,6 +69,12 @@ const NavBar = ({
     Record<number, boolean>
   >({});
 
+  const [notificationMessages, setNotificationMessages] = useState<
+    Record<number, NoteNotification[]>
+  >({});
+
+  const [hoveredNoteId, setHoveredNoteId] = useState<number | null>(null);
+
   const titleComboRef = useRef<HTMLDivElement | null>(null);
 
   const trashComboRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +96,23 @@ const NavBar = ({
         strokeLinecap="round"
       />
     </svg>
+  );
+
+  const NotificationTooltip = ({
+    notifications,
+  }: {
+    notifications: NoteNotification[];
+  }) => (
+    <div className="notification-tooltip">
+      {notifications.map((n) => (
+        <div key={n.id} className="notification-item">
+          <strong>{formatNotification(n.notificationType, n.noteId)}</strong>
+          <span className="notification-date">
+            {n.createdAt.toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 
   useEffect(() => {
@@ -200,6 +227,16 @@ const NavBar = ({
     setNoteNotifications(Object.fromEntries(entries));
   }
 
+  async function loadNotificationsForNote(noteId: number) {
+    if (notificationMessages[noteId]) return; // already loaded
+
+    const notifs = await getNotificationsByNoteId(noteId);
+    setNotificationMessages((prev) => ({
+      ...prev,
+      [noteId]: notifs,
+    }));
+  }
+
   return (
     <>
       <div className="navbar">
@@ -290,7 +327,10 @@ const NavBar = ({
           </button>
 
           {isNoteListOpen && (
-            <div className="combo-dropdown">
+            <div
+              className="combo-dropdown"
+              onMouseLeave={() => setHoveredNoteId(null)}
+            >
               <div
                 className="dropdown-item"
                 onClick={() => {
@@ -460,7 +500,10 @@ const NavBar = ({
               </div>
 
               {isTrashListOpen && trashList.length != 0 && (
-                <div className="combo-dropdown">
+                <div
+                  className="combo-dropdown"
+                  onMouseLeave={() => setHoveredNoteId(null)}
+                >
                   {trashList.map((note) => (
                     <div
                       key={note.id}
@@ -474,7 +517,26 @@ const NavBar = ({
                         {note.title || "Untitled"}
                       </span>
                       <div className="dropdown-item-buttons">
-                        {noteNotifications[note.id!] && <NotificationIcon />}
+                        {noteNotifications[note.id!] && (
+                          <div
+                            className="notification-wrapper"
+                            onMouseEnter={() => {
+                              setHoveredNoteId(note.id!);
+                              loadNotificationsForNote(note.id!);
+                            }}
+                            onMouseLeave={() => setHoveredNoteId(null)}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {hoveredNoteId === note.id &&
+                              notificationMessages[note.id!] && (
+                                <NotificationTooltip
+                                  notifications={notificationMessages[note.id!]}
+                                />
+                              )}
+
+                            <NotificationIcon />
+                          </div>
+                        )}
 
                         <button
                           onClick={(e) => {

@@ -18,7 +18,7 @@ export interface AzureUser {
   createdAt: Date;
 }
 
-export interface Notification {
+export interface NoteNotification {
   id?: number;
   noteId?: number;
   notificationType: NotificationType;
@@ -36,7 +36,7 @@ export type NotificationType =
 export class QuickNotesDB extends Dexie {
   notes!: Table<Note>;
   azureUsers!: Table<AzureUser>;
-  notifications!: Table<Notification>;
+  notifications!: Table<NoteNotification>;
 
   constructor() {
     super('QuickNotesDB');
