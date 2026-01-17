@@ -81,9 +81,9 @@
 
 .save-button:hover svg,
 .sync-azure-notes-button:hover svg,
-.delete-button:hover svg,
+.delete-button:not(:disabled):hover svg,
 .file-button:hover .file-dot,
-.dropdown-button:hover svg {
+.dropdown-button:not(:disabled):hover svg {
   stroke: #65706f;
 }
 
@@ -91,12 +91,22 @@
   fill: #A8BFBC;
 }
 
-.dropdown-button:hover svg {
-  stroke: #65706f;
+/* trash dropdown button disabled view */
+.dropdown-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.dropdown-button:disabled svg {
+  pointer-events: none;
 }
 
 .delete-button{
   margin-right: -12px;
+}
+
+.delete-button:disabled{
+  opacity: 0.3;
+  cursor: default;
 }
 
 .file-button{
@@ -178,10 +188,16 @@
   border-radius: 2px;
   background-color: #275352;
   color:#A8BFBC;
+  height: 20px;
 }
 
-.dropdown-item button:hover {
+.recover-button:hover {
   background-color: #9CB6B7;
+  color:#000000;
+}
+
+.hard-delete-button:hover {
+  background-color: #B23A3A;
   color:#000000;
 }
 
@@ -249,7 +265,9 @@
 
 .notification-tooltip {
   position: fixed;
-  background: #0a1e1d;
+  /* background: #0a1e1d; */
+  background: #142929;
+  /* background: #112222; */
   color: #a8bfbc;
   padding: 8px 10px;
   border-radius: 6px;
@@ -259,6 +277,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: none;
   transform: translate(calc(-100% - 10px));
+  max-width: 130px;
 }
 
 .notification-item {

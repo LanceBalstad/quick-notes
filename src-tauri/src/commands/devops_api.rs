@@ -19,8 +19,10 @@ pub async fn devops_get_work_item_pat(app: AppHandle) -> Result<String, String> 
 
 #[command]
 pub async fn devops_get_users_work_items_pat(app: AppHandle) -> Result<String, String> {
+    // Get all work item ids for user with PAT
     let users_work_item_ids = devops_get_users_work_item_ids_pat(&app).await?;
 
+    // display content of work items for each work item id
     devops_get_work_items_pat(&app, users_work_item_ids).await
 }
 
@@ -34,8 +36,8 @@ async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<Str
         fields: vec![
             "System.Id",
             "System.Title",
-            "System.State",
             "System.WorkItemType",
+            "Microsoft.VSTS.Common.ClosedDate",
             "Microsoft.VSTS.Scheduling.RemainingWork",
         ],
     };

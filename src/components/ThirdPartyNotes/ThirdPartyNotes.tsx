@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
-import { getNotesAzureIds } from "../../db/Services/NotesService";
+import { getActiveNotesAzureIds } from "../../db/Services/NotesService";
 import {
   addNoteWithNotification,
-  softDeleteNotesWithNotificationUsingAzureID,
+  softDeleteNotesWithNotificationUsingAzureId,
 } from "../../Helpers/NoteHelper";
 
 const ThirdPartyNotes = () => {
@@ -33,7 +33,7 @@ const ThirdPartyNotes = () => {
   }
 
   async function syncDevopsNotes() {
-    const quickNotes = await getNotesAzureIds();
+    const quickNotes = await getActiveNotesAzureIds();
     const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
       existingAzureIds: quickNotes,
     });
@@ -48,7 +48,7 @@ const ThirdPartyNotes = () => {
     }
 
     for (const note of syncResult.to_delete) {
-      await softDeleteNotesWithNotificationUsingAzureID(note.azure_id);
+      await softDeleteNotesWithNotificationUsingAzureId(note.azure_id);
     }
   }
 

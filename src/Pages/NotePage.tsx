@@ -1,21 +1,25 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import NavBar from "../components/Note/NavBar";
 import Body from "../components/Note/Body";
+import { invoke } from "@tauri-apps/api/core";
 import {
+  Note,
   addNote,
   getActiveNotes,
   updateNote,
   getNote,
   isCurrentNameUnique,
   getInactiveNotes,
-  hardDeleteNote,
-  recoverNote,
+  getActiveNotesAzureIds,
+  getSoftDeletedNotesAzureIds,
 } from "../db/Services/NotesService";
-import { Note } from "../db/Services/NotesService";
+import { getDeletedSyncedNotes } from "../db/Services/HardDeletedSyncedNotesService";
 import {
   softDeleteNoteWithNotification,
-  recoverNoteNoteWithNotification,
+  recoverNoteWithNotification,
   hardDeleteNotesWithNotification,
+  addNoteWithNotification,
+  softDeleteNotesWithNotificationUsingAzureId,
 } from "../Helpers/NoteHelper";
 
 function NotePage() {
@@ -26,6 +30,7 @@ function NotePage() {
   const [title, setTitle] = React.useState("");
   const [trashList, setTrashList] = React.useState<Note[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
 
   const currentNote = noteList.find((note) => note.id === currentNoteId);
 
@@ -39,6 +44,20 @@ function NotePage() {
     setTrashList(notes);
   };
 
+  type NoteToCreate = {
+    azure_id: number;
+    title: string;
+  };
+
+  type NoteToDelete = {
+    azure_id: number;
+  };
+
+  type SyncRequest = {
+    to_create: NoteToCreate[];
+    to_delete: NoteToDelete[];
+  };
+
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -47,6 +66,7 @@ function NotePage() {
     fetchTrashNotes();
   }, []);
 
+  // auto-save
   useEffect(() => {
     if (!currentNoteId || !hasUserEdited) return;
 
@@ -63,6 +83,20 @@ function NotePage() {
     }, 1000);
     return () => clearTimeout(timeout);
   }, [body, hasUserEdited, currentNoteId]);
+
+  // auto-sync
+  useEffect(() => {
+    handleSync();
+
+    const interval = setInterval(() => {
+      handleSync().catch((error) => {
+        console.error("Error auto-syncing note:", error);
+      });
+    }, 30000);
+    return () => clearTimeout(interval);
+  }, []);
+
+  const isSyncingRef = useRef(false);
 
   const handleSave = async (saveTitle: boolean = true) => {
     const isUniqueName = await isCurrentNameUnique(currentNoteId || -1, title);
@@ -129,7 +163,7 @@ function NotePage() {
 
   const handleRecoverNote = async (noteId?: number) => {
     if (noteId) {
-      await recoverNoteNoteWithNotification(noteId);
+      await recoverNoteWithNotification(noteId);
       await fetchNotes();
       await fetchTrashNotes();
 
@@ -144,6 +178,54 @@ function NotePage() {
       await fetchTrashNotes();
 
       handleOpenNote(noteId);
+    }
+  };
+
+  const handleSync = async () => {
+    if (isSyncingRef.current) {
+      console.log("Skipping auto-sync since sync is already running");
+      return;
+    }
+
+    isSyncingRef.current = true;
+
+    try {
+      const existingNoteIdList = await getActiveNotesAzureIds();
+      const existingTrashIdList = await getSoftDeletedNotesAzureIds();
+      const hardDeletedThirdPartyIds = await getDeletedSyncedNotes();
+
+      const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
+        existingNotesAzureIds: existingNoteIdList,
+        existingTrashAzureIds: existingTrashIdList,
+      });
+
+      for (const note of syncResult.to_create) {
+        // if the note to be created is in the HardDeletedSyncedNotes table, then don't re-create it
+        if (hardDeletedThirdPartyIds.has(note.azure_id)) {
+          console.log(
+            `Skipping creation of note attached to work item: ${note.azure_id} because it is in the HardDeletedSyncedNotes table`
+          );
+        } else {
+          await addNoteWithNotification({
+            title: note.title,
+            azureId: note.azure_id,
+            createdAt: new Date(),
+            softDeleted: false,
+          });
+        }
+      }
+
+      for (const note of syncResult.to_delete) {
+        await softDeleteNotesWithNotificationUsingAzureId(note.azure_id);
+      }
+
+      // refresh note lists
+      await fetchNotes();
+      await fetchTrashNotes();
+    } catch (err) {
+      console.error("Sync Failed:", err);
+    } finally {
+      isSyncingRef.current = false;
     }
   };
 
@@ -163,6 +245,7 @@ function NotePage() {
             isDeleted={currentNoteId != undefined && !currentNote}
             onHardDelete={handleHardDelete}
             onRecoverNote={handleRecoverNote}
+            onSync={handleSync}
           />
         </div>
         <Body

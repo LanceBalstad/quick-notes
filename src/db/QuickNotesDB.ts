@@ -7,7 +7,6 @@ export interface Note {
   title: string;
   content?: string;
   createdAt: Date;
-  lastSyncedAt?: Date;
   lastSavedAt?: Date;
   softDeleted: boolean;
 }
@@ -16,6 +15,7 @@ export interface AzureUser {
   id?: number;
   azureId?: string;
   createdAt: Date;
+  lastSyncedAt?: Date;
 }
 
 export interface NoteNotification {
@@ -25,6 +25,15 @@ export interface NoteNotification {
   isImportant: boolean;
   createdAt: Date;
   isRead: boolean;
+}
+
+// Graveyard for hard delted notes that were synced with a third party work item
+//
+// held here so that if a note is hard delelted, but the third pary work item still exists,
+// the note will not be created again on sync
+export interface DeletedSyncedNotes {
+  id?: number;
+  thirdPartyId: number;
 }
 
 export type NotificationType = 
@@ -37,6 +46,7 @@ export class QuickNotesDB extends Dexie {
   notes!: Table<Note>;
   azureUsers!: Table<AzureUser>;
   notifications!: Table<NoteNotification>;
+  deletedSyncedNotes!: Table<DeletedSyncedNotes>;
 
   constructor() {
     super('QuickNotesDB');
@@ -44,6 +54,7 @@ export class QuickNotesDB extends Dexie {
       notes: '++id, &noteId, azureId, title, createdAt', // indexed fields
       azureUsers: '++id, azureId, createdAt',
       notifications: '++id, noteId, createdAt, isRead',
+      deletedSyncedNotes: '++id, thirdPartyId',
     });
   }
 }

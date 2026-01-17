@@ -17,6 +17,9 @@ struct DevOpsWorkItem {
 pub struct DevOpsFields {
     #[serde(rename = "System.Title")]
     pub title: String,
+
+    #[serde(rename = "Microsoft.VSTS.Common.ClosedDate")]
+    pub closed_date: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -39,7 +42,8 @@ pub struct DevOpsDeleteNoteReq {
 #[command]
 pub async fn sync_notes_with_devops(
     app: AppHandle,
-    existing_azure_ids: Vec<i32>,
+    existing_notes_azure_ids: Vec<i32>,
+    existing_trash_azure_ids: Vec<i32>,
 ) -> Result<SyncInstruction, String> {
     let devops_notes_json = devops_get_users_work_items_pat(app).await?;
 
@@ -51,19 +55,35 @@ pub async fn sync_notes_with_devops(
     let devops_work_item_ids: std::collections::HashSet<i32> =
         devops_notes.iter().map(|w| w.id).collect();
 
+    // get notes to create
     let to_create: Vec<DevOpsCreateNoteReq> = devops_notes
         .iter()
-        .filter(|w| !existing_azure_ids.contains(&w.id))
+        .filter(|w| {
+            !existing_notes_azure_ids.contains(&w.id)
+                && !existing_trash_azure_ids.contains(&w.id)
+                && w.fields.closed_date.is_none()
+        })
         .map(|w| DevOpsCreateNoteReq {
             azure_id: w.id,
             title: w.fields.title.clone(),
         })
         .collect();
 
-    let to_delete: Vec<DevOpsDeleteNoteReq> = existing_azure_ids
-        .into_iter()
+    // Get Notes to delete
+    let closed_devops_ids: std::collections::HashSet<i32> = devops_notes
+        .iter()
+        .filter(|w| w.fields.closed_date.is_some())
+        .map(|w| w.id)
+        .collect();
+    let missing_devops_ids: std::collections::HashSet<i32> = existing_notes_azure_ids
+        .iter()
         .filter(|id| !devops_work_item_ids.contains(id))
-        .map(|id| DevOpsDeleteNoteReq { azure_id: id })
+        .copied()
+        .collect();
+    let to_delete: Vec<DevOpsDeleteNoteReq> = closed_devops_ids
+        .union(&missing_devops_ids)
+        .filter(|id| !existing_trash_azure_ids.contains(id))
+        .map(|id| DevOpsDeleteNoteReq { azure_id: *id })
         .collect();
 
     Ok(SyncInstruction {

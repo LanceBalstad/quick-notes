@@ -55,10 +55,7 @@ const Body = ({
 
   // Check if current line starts with a dash
   const isListLine = (lineInfo: ReturnType<typeof getCurrentLineInfo>) => {
-    return (
-      lineInfo.firstCharInLineMinusWhiteSpace === "-" &&
-      lineInfo.dashIndex === lineInfo.firstNonWhitespaceIndex
-    );
+    return lineInfo.firstCharInLineMinusWhiteSpace === "-";
   };
 
   const handleDashList = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -76,30 +73,24 @@ const Body = ({
 
     e.preventDefault();
 
-    //if the line is only a dash, un indent or remove the dash
+    // Line contains only a dash
     if (lineInfo.trimmedLine === "-") {
-      // if there is leading whitespace, remove one level of indentation
-      if (lineInfo.leadingWhitespace.length > 0) {
-        before =
-          before.slice(0, lineInfo.lineStart) +
-          lineInfo.leadingWhitespace.slice(0, -1) +
-          "-";
-
-        updateTextAreaState(before + after, before.length);
-        return;
-      }
-
-      // if we are at the start of the line, remove the dash
-      before = before.slice(0, lineInfo.lineStart);
-      updateTextAreaState(before + after, before.length);
+      const newBefore =
+        lineInfo.leadingWhitespace.length > 0
+          ? before.slice(0, lineInfo.lineStart) +
+            lineInfo.leadingWhitespace.slice(0, -1) +
+            "-"
+          : before.slice(0, lineInfo.lineStart);
+      updateTextAreaState(newBefore + after, newBefore.length);
       return;
     }
 
-    // If the current line started with "-" and there is content, then start the new line with "-"
-    const insert = "\n" + lineInfo.leadingWhitespace + "-";
-    const newValue = before + insert + after;
-    updateTextAreaState(newValue, before.length + insert.length);
-    return;
+    // Line contains content after dash -> insert new dash line
+    const newValue = before + "\n" + lineInfo.leadingWhitespace + "- " + after;
+    updateTextAreaState(
+      newValue,
+      before.length + lineInfo.leadingWhitespace.length + 2
+    ); // cursor after dash + space
   };
 
   const handleTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

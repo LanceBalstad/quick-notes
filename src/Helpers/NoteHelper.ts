@@ -1,5 +1,6 @@
 import { addNote, softDeleteNotesByAzureIds, getNote, softDeleteNote, recoverNote, hardDeleteNote } from "../db/Services/NotesService";
 import { addNotification, deleteNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
+import { addDeletedSyncedNote } from "../db/Services/HardDeletedSyncedNotesService";
 import { NotificationType, Note } from "../db/QuickNotesDB";
 import { deleteNotificationsForNotes } from "./NotificationHelper";
 
@@ -39,21 +40,24 @@ export async function softDeleteNoteWithNotification(
   });
 }
 
-export async function softDeleteNotesWithNotificationUsingAzureID(
+export async function softDeleteNotesWithNotificationUsingAzureId(
   azureId: number,
 ) {
-  await softDeleteNotesByAzureIds(azureId);
+  const noteIds = await softDeleteNotesByAzureIds(azureId);
 
-  await addNotification({
-    notificationType: "NOTE_SENT_TO_TRASH_BY_SYNC",
-    isImportant: false,
-    createdAt: new Date(),
-    isRead: false,
-  });
+  for (const noteId of noteIds) {
+    await addNotification({
+      noteId: noteId,
+      notificationType: "NOTE_SENT_TO_TRASH_BY_SYNC",
+      isImportant: false,
+      createdAt: new Date(),
+      isRead: false,
+    });
+  }
 }
 
 // when a note is recovered, it should lose its deleted notification
-export async function recoverNoteNoteWithNotification(
+export async function recoverNoteWithNotification(
   id: number,
 ) {
   await deleteNotificationsByNoteIds([id]);
@@ -67,5 +71,12 @@ export async function hardDeleteNotesWithNotification(
 ) {
   await deleteNotificationsByNoteIds([id]);
   
+  const deletedNote = await getNote(id);
+  if (!deletedNote) return;
+
   await hardDeleteNote(id);
+
+  if (deletedNote.azureId !== undefined){
+    addDeletedSyncedNote(deletedNote.azureId);
+  }
 }

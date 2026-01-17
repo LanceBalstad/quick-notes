@@ -10,10 +10,10 @@ export function formatNotification(
   if (noteId){
     switch (notificationType) {
       case "NOTE_CREATED_BY_SYNC":
-        return `Note was created by sync process"`;
+        return `Note was created by sync process`;
 
       case "NOTE_SENT_TO_TRASH_BY_SYNC":
-        return `Note was deleted by sync process`;
+        return `Note was moved to trash by sync process`;
 
       case "NOTE_SENT_TO_TRASH_BY_USER":
           return `Note was moved to trash manually`;
@@ -22,7 +22,7 @@ export function formatNotification(
           return `Note will be permanently deleted soon`;
 
       default:
-        return "You have a new notification";
+        return 'You have a new notification';
     }
   }
   return "";

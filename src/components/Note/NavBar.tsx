@@ -2,16 +2,10 @@ import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getNotesAzureIds } from "../../db/Services/NotesService";
 import {
   getNotificationsByNoteId,
   NoteNotification,
 } from "../../db/Services/NotificationsService";
-import {
-  addNoteWithNotification,
-  softDeleteNotesWithNotificationUsingAzureID,
-} from "../../Helpers/NoteHelper";
 import {
   checkNotificationsForNotes,
   deleteNotificationsForNotes,
@@ -31,6 +25,7 @@ interface NavBarProps {
   isDeleted?: boolean;
   onHardDelete: (noteId?: number) => void;
   onRecoverNote: (noteId?: number) => void;
+  onSync: () => Promise<void>;
 }
 
 const NavBar = ({
@@ -45,6 +40,7 @@ const NavBar = ({
   isDeleted,
   onHardDelete,
   onRecoverNote,
+  onSync,
 }: NavBarProps) => {
   const navigate = useNavigate();
 
@@ -66,6 +62,10 @@ const NavBar = ({
     useState(false);
 
   const [noteNotifications, setNoteNotifications] = useState<
+    Record<number, boolean>
+  >({});
+
+  const [trashNotifications, setTrashNotifications] = useState<
     Record<number, boolean>
   >({});
 
@@ -143,80 +143,68 @@ const NavBar = ({
     };
   }, [isNoteListOpen, isTrashListOpen]);
 
-  type NoteToCreate = {
-    azure_id: number;
-    title: string;
-  };
-
-  type NoteToDelete = {
-    azure_id: number;
-  };
-
-  type SyncRequest = {
-    to_create: NoteToCreate[];
-    to_delete: NoteToDelete[];
-  };
-
+  // fetch notifs for note list logic whenever note list updates
   useEffect(() => {
-    const run = async () => {
-      setTrashHasNotifications(await checkNotificationsForNotes(trashList));
-    };
+    (async () => {
+      // fetch if note dropdown button needs a notif
+      setNoteListHasNotifications(await checkNotificationsForNotes(notes));
 
-    run();
-  }, [trashList]);
-
-  useEffect(() => {
-    loadNotificationsForNotes(notes);
+      // fetch individual note notifs for trash list whenever trash list updates
+      const noteNotifs = await individualNoteNotifs(notes);
+      setNoteNotifications(noteNotifs);
+    })();
   }, [notes]);
 
+  // fetch notifs for trash list logic whenever trash list updates
   useEffect(() => {
-    loadNotificationsForNotes(trashList);
+    (async () => {
+      // fetch if trash dropdown button needs a notif
+      setTrashHasNotifications(await checkNotificationsForNotes(trashList));
+
+      // fetch individual note notifs for trash list whenever trash list updates
+      const trashNoteNotifs = await individualNoteNotifs(trashList);
+      setTrashNotifications(trashNoteNotifs);
+    })();
   }, [trashList]);
+
+  useEffect(() => {
+    if (!isNoteListOpen) {
+      // dropdown just closed
+      (async () => {
+        //refetch(remove) note list notification on close
+        await deleteNotificationsForNotes(notes);
+        setNoteListHasNotifications(false);
+
+        //We want to refetch individual notifs at this time as well (which will delete them)
+        const noteNotifs = await individualNoteNotifs(notes);
+        setNoteNotifications(noteNotifs);
+      })();
+    }
+  }, [isNoteListOpen]);
 
   useEffect(() => {
     if (!isTrashListOpen) {
       // dropdown just closed
-      deleteNotificationsForNotes(trashList).then(() => {
+      (async () => {
+        //refetch(remove) trash list notification on close
+        await deleteNotificationsForNotes(trashList);
         setTrashHasNotifications(false);
-        loadNotificationsForNotes(trashList);
-      });
+
+        //We want to refetch individual notifs at this time as well (which will delete them)
+        const trashNoteNotifs = await individualNoteNotifs(trashList);
+        setTrashNotifications(trashNoteNotifs);
+      })();
     }
   }, [isTrashListOpen]);
 
+  // keeps the note notification messages from going stale
   useEffect(() => {
-    if (!isNoteListOpen) {
-      deleteNotificationsForNotes(notes).then(() => {
-        setNoteListHasNotifications(false);
-        loadNotificationsForNotes(notes);
-      });
-    }
-  }, [isNoteListOpen]);
+    setNotificationMessages({});
+  }, [notes, trashList]);
 
-  async function syncDevopsNotes() {
-    const quickNotes = await getNotesAzureIds();
-    const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
-      existingAzureIds: quickNotes,
-    });
-
-    for (const note of syncResult.to_create) {
-      await addNoteWithNotification({
-        title: note.title,
-        azureId: note.azure_id,
-        createdAt: new Date(),
-        softDeleted: false,
-      });
-    }
-
-    for (const note of syncResult.to_delete) {
-      await softDeleteNotesWithNotificationUsingAzureID(note.azure_id);
-    }
-
-    // resync notifications
-    setNoteListHasNotifications(await checkNotificationsForNotes(notes));
-    setTrashHasNotifications(await checkNotificationsForNotes(trashList));
-  }
-
-  async function loadNotificationsForNotes(notes: Note[]) {
+  const individualNoteNotifs = async function loadNotificationsForNotes(
+    notes: Note[]
+  ) {
     const entries = await Promise.all(
       notes.map(async (note) => [
         note.id!,
@@ -224,11 +212,13 @@ const NavBar = ({
       ])
     );
 
-    setNoteNotifications(Object.fromEntries(entries));
-  }
+    return Object.fromEntries(entries);
+  };
 
+  //
   async function loadNotificationsForNote(noteId: number) {
-    if (notificationMessages[noteId]) return; // already loaded
+    // Already loaded. Keeps the notif tool tip from getting stuck open
+    if (notificationMessages[noteId]) return;
 
     const notifs = await getNotificationsByNoteId(noteId);
     setNotificationMessages((prev) => ({
@@ -352,7 +342,26 @@ const NavBar = ({
                 >
                   <span className="note-title">{note.title || "Untitled"}</span>
 
-                  {noteNotifications[note.id!] && <NotificationIcon />}
+                  {noteNotifications[note.id!] && (
+                    <div
+                      className="notification-wrapper"
+                      onMouseEnter={() => {
+                        setHoveredNoteId(note.id!);
+                        loadNotificationsForNote(note.id!);
+                      }}
+                      onMouseLeave={() => setHoveredNoteId(null)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {hoveredNoteId === note.id &&
+                        notificationMessages[note.id!] && (
+                          <NotificationTooltip
+                            notifications={notificationMessages[note.id!]}
+                          />
+                        )}
+
+                      <NotificationIcon />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -410,7 +419,7 @@ const NavBar = ({
           <div className="sync-group">
             <button
               className="sync-azure-notes-button"
-              onClick={() => syncDevopsNotes()}
+              onClick={() => onSync()}
             >
               {/* Sync button icon path */}
               <svg
@@ -431,7 +440,11 @@ const NavBar = ({
           </div>
           <div className="delete-group">
             <div className="dropdown-button-combo" ref={trashComboRef}>
-              <button className="delete-button" onClick={onSoftDelete}>
+              <button
+                className="delete-button"
+                onClick={onSoftDelete}
+                disabled={isDeleted}
+              >
                 {/* Trash bin icon path */}
                 <svg
                   width="32"
@@ -454,6 +467,7 @@ const NavBar = ({
                   className="dropdown-button"
                   onClick={() => setIsTrashListOpen((d) => !d)}
                   aria-label="Open notes"
+                  disabled={trashList.length === 0}
                 >
                   {/* dropdown button icon path */}
                   <svg
@@ -499,7 +513,7 @@ const NavBar = ({
                 </svg>
               </div>
 
-              {isTrashListOpen && trashList.length != 0 && (
+              {isTrashListOpen && trashList.length !== 0 && (
                 <div
                   className="combo-dropdown"
                   onMouseLeave={() => setHoveredNoteId(null)}
@@ -517,7 +531,7 @@ const NavBar = ({
                         {note.title || "Untitled"}
                       </span>
                       <div className="dropdown-item-buttons">
-                        {noteNotifications[note.id!] && (
+                        {trashNotifications[note.id!] && (
                           <div
                             className="notification-wrapper"
                             onMouseEnter={() => {
@@ -539,6 +553,7 @@ const NavBar = ({
                         )}
 
                         <button
+                          className="recover-button"
                           onClick={(e) => {
                             e.stopPropagation();
                             onRecoverNote(note.id);
@@ -548,10 +563,18 @@ const NavBar = ({
                           Recover
                         </button>
                         <button
+                          className="hard-delete-button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onHardDelete(note.id);
-                            setIsTrashListOpen(false);
+
+                            const isConfirmed = window.confirm(
+                              "Are you sure you want to permanently delete this note?"
+                            );
+
+                            if (isConfirmed) {
+                              onHardDelete(note.id);
+                              setIsTrashListOpen(false);
+                            }
                           }}
                         >
                           Delete

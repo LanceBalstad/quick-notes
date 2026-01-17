@@ -17,10 +17,14 @@ export const getNotes = async (): Promise<Note[]> => {
   return await db.notes.toArray();
 };
 
-export const getNotesAzureIds = async (): Promise<(number)[]> => {
-  const notes = await db.notes.toArray();
+export const getActiveNotesAzureIds = async (): Promise<(number)[]> => {
+  const activeAzureNotes = await db.notes.filter(note => !note.softDeleted && note.azureId !== undefined).toArray();
+  return activeAzureNotes.map(n => n.azureId!);
+};
 
-  return notes.map(n => n.azureId).filter((id): id is number => id !== undefined && id !== null);;
+export const getSoftDeletedNotesAzureIds = async (): Promise<(number)[]> => {
+  const activeAzureNotes = await db.notes.filter(note => note.softDeleted && note.azureId !== undefined).toArray();
+  return activeAzureNotes.map(n => n.azureId!);
 };
 
 export const getActiveNotes = async (): Promise<Note[]> => {
@@ -59,7 +63,13 @@ export const softDeleteNote = async (id: number) => {
 }
 
 export const softDeleteNotesByAzureIds = async (azureId: number) => {
+  const notes = db.notes.where('azureId').equals(azureId).toArray();
+
+  const noteIds = (await notes).map((n) =>n.id!).filter(Boolean);
+
   await db.notes.where('azureId').equals(azureId).modify({ softDeleted: true });
+
+  return noteIds;
 }
 
 export const hardDeleteNote = async (id: number) => {
