@@ -15,6 +15,10 @@ import {
 } from "../db/Services/NotesService";
 import { getDeletedSyncedNotes } from "../db/Services/HardDeletedSyncedNotesService";
 import {
+  getThirdPartyAccount,
+  updateLastSyncedAtDate,
+} from "../db/Services/ThirdPartyAccountService";
+import {
   softDeleteNoteWithNotification,
   recoverNoteWithNotification,
   hardDeleteNotesWithNotification,
@@ -29,6 +33,7 @@ function NotePage() {
   const [currentNoteId, setCurrentNoteId] = React.useState<number | null>(null);
   const [title, setTitle] = React.useState("");
   const [trashList, setTrashList] = React.useState<Note[]>([]);
+  const [lastSyncedAt, setLastSyncedAt] = React.useState<Date | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
 
@@ -96,7 +101,63 @@ function NotePage() {
     return () => clearTimeout(interval);
   }, []);
 
+  // prevents handleSync from being called if it is already running.
+  // A useState would cause rerenders. useRef is better to use when the const is not a UI state
   const isSyncingRef = useRef(false);
+
+  const handleSync = async () => {
+    if (isSyncingRef.current) {
+      console.log("Skipping auto-sync since sync is already running");
+      return;
+    }
+
+    isSyncingRef.current = true;
+
+    try {
+      setIsSyncing(true);
+
+      const existingNoteIdList = await getActiveNotesAzureIds();
+      const existingTrashIdList = await getSoftDeletedNotesAzureIds();
+      const hardDeletedThirdPartyIds = Array.from(
+        await getDeletedSyncedNotes(),
+      );
+
+      const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
+        existingNotesAzureIds: existingNoteIdList,
+        existingTrashAzureIds: existingTrashIdList,
+        hardDeletedSyncedNotesAzureIds: hardDeletedThirdPartyIds,
+      });
+
+      for (const note of syncResult.to_create) {
+        // if the note to be created is NOT in the HardDeletedSyncedNotes, existingTrashIdList, or hardDeletedThirdPartyIds, then create it
+        await addNoteWithNotification({
+          title: note.title,
+          azureId: note.azure_id,
+          createdAt: new Date(),
+          lastSavedAt: new Date(),
+          softDeleted: false,
+        });
+      }
+
+      // if the note is (closed, or not in azure anymore) AND the note currently exists in the existingNoteIdList, send it to the trash
+      for (const note of syncResult.to_delete) {
+        await softDeleteNotesWithNotificationUsingAzureId(note.azure_id);
+      }
+
+      // refresh note lists
+      await fetchNotes();
+      await fetchTrashNotes();
+
+      // will update lastSyncedDate IF ThirdPartyAccount exists
+      const newLastSyncedAt = await updateLastSyncedAtDate();
+      setLastSyncedAt(newLastSyncedAt ?? null);
+    } catch (err) {
+      console.error("Sync Failed:", err);
+    } finally {
+      setIsSyncing(false);
+      isSyncingRef.current = false;
+    }
+  };
 
   const handleSave = async (saveTitle: boolean = true) => {
     const isUniqueName = await isCurrentNameUnique(currentNoteId || -1, title);
@@ -152,7 +213,7 @@ function NotePage() {
     if (currentNoteId) {
       await softDeleteNoteWithNotification(
         currentNoteId,
-        "NOTE_SENT_TO_TRASH_BY_USER"
+        "NOTE_SENT_TO_TRASH_BY_USER",
       );
       await fetchNotes();
       await fetchTrashNotes();
@@ -181,54 +242,6 @@ function NotePage() {
     }
   };
 
-  const handleSync = async () => {
-    if (isSyncingRef.current) {
-      console.log("Skipping auto-sync since sync is already running");
-      return;
-    }
-
-    isSyncingRef.current = true;
-
-    try {
-      const existingNoteIdList = await getActiveNotesAzureIds();
-      const existingTrashIdList = await getSoftDeletedNotesAzureIds();
-      const hardDeletedThirdPartyIds = await getDeletedSyncedNotes();
-
-      const syncResult = await invoke<SyncRequest>("sync_notes_with_devops", {
-        existingNotesAzureIds: existingNoteIdList,
-        existingTrashAzureIds: existingTrashIdList,
-      });
-
-      for (const note of syncResult.to_create) {
-        // if the note to be created is in the HardDeletedSyncedNotes table, then don't re-create it
-        if (hardDeletedThirdPartyIds.has(note.azure_id)) {
-          console.log(
-            `Skipping creation of note attached to work item: ${note.azure_id} because it is in the HardDeletedSyncedNotes table`
-          );
-        } else {
-          await addNoteWithNotification({
-            title: note.title,
-            azureId: note.azure_id,
-            createdAt: new Date(),
-            softDeleted: false,
-          });
-        }
-      }
-
-      for (const note of syncResult.to_delete) {
-        await softDeleteNotesWithNotificationUsingAzureId(note.azure_id);
-      }
-
-      // refresh note lists
-      await fetchNotes();
-      await fetchTrashNotes();
-    } catch (err) {
-      console.error("Sync Failed:", err);
-    } finally {
-      isSyncingRef.current = false;
-    }
-  };
-
   return (
     <>
       <div className="note-page">
@@ -246,6 +259,7 @@ function NotePage() {
             onHardDelete={handleHardDelete}
             onRecoverNote={handleRecoverNote}
             onSync={handleSync}
+            lastSyncedAt={lastSyncedAt ?? undefined}
           />
         </div>
         <Body

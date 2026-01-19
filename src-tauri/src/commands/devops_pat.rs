@@ -27,6 +27,15 @@ pub async fn store_devops_pat(app: AppHandle, pat: String) -> Result<String, Str
 }
 
 #[command]
+pub async fn has_devops_pat(app: AppHandle) -> Result<bool, String> {
+    match app.keyring().get_password(SERVICE, ACCOUNT) {
+        Ok(Some(_)) => Ok(true),
+        Ok(None) => Ok(false),
+        Err(e) => Err(format!("Failed to read PAT: {}", e)),
+    }
+}
+
+#[command]
 pub async fn get_devops_pat(app: AppHandle) -> Result<Option<String>, String> {
     match app.keyring().get_password(SERVICE, ACCOUNT) {
         Ok(p) => Ok(p),

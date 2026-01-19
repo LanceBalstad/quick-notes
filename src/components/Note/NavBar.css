@@ -88,7 +88,7 @@
 }
 
 .dropdown-button svg {
-  fill: #A8BFBC;
+  /* fill: #A8BFBC; */
 }
 
 /* trash dropdown button disabled view */
@@ -153,13 +153,14 @@
   margin-left: auto;
 }
 
-.save-group {
+.save-group,
+.sync-group {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.last-saved {
+.last-happened {
   color: #A8BFBC;
   font-size: 10px;
   flex-shrink: 0;
@@ -169,7 +170,7 @@
   align-items: flex-start;
 }
 
-.last-saved span:first-child {
+.last-happened span:first-child {
   font-size: 10px;
   opacity: 0.6;
 }

@@ -1,4 +1,3 @@
-// utils/notificationFormatter.ts
 import { getAllNotifications, NoteNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
 import { getNote } from "../db/Services/NotesService";
 import { Note, NotificationType } from "../db/QuickNotesDB";

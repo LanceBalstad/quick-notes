@@ -38,7 +38,7 @@ async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<Str
             "System.Title",
             "System.WorkItemType",
             "Microsoft.VSTS.Common.ClosedDate",
-            "Microsoft.VSTS.Scheduling.RemainingWork",
+            "System.AssignedTo",
         ],
     };
 

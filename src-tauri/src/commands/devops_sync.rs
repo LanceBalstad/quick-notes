@@ -44,6 +44,7 @@ pub async fn sync_notes_with_devops(
     app: AppHandle,
     existing_notes_azure_ids: Vec<i32>,
     existing_trash_azure_ids: Vec<i32>,
+    hard_deleted_synced_notes_azure_ids: Vec<i32>,
 ) -> Result<SyncInstruction, String> {
     let devops_notes_json = devops_get_users_work_items_pat(app).await?;
 
@@ -61,6 +62,7 @@ pub async fn sync_notes_with_devops(
         .filter(|w| {
             !existing_notes_azure_ids.contains(&w.id)
                 && !existing_trash_azure_ids.contains(&w.id)
+                && !hard_deleted_synced_notes_azure_ids.contains(&w.id)
                 && w.fields.closed_date.is_none()
         })
         .map(|w| DevOpsCreateNoteReq {
@@ -82,7 +84,7 @@ pub async fn sync_notes_with_devops(
         .collect();
     let to_delete: Vec<DevOpsDeleteNoteReq> = closed_devops_ids
         .union(&missing_devops_ids)
-        .filter(|id| !existing_trash_azure_ids.contains(id))
+        .filter(|id| existing_notes_azure_ids.contains(id))
         .map(|id| DevOpsDeleteNoteReq { azure_id: *id })
         .collect();
 

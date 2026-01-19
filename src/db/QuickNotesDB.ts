@@ -11,12 +11,18 @@ export interface Note {
   softDeleted: boolean;
 }
 
-export interface AzureUser {
+export interface ThirdPartyAccount {
   id?: number;
-  azureId?: string;
+  accountType: ThirdPartyAccountType;
+  thirdPartyUserId?: string;
+  authMethod: 'OAUTH' | 'PAT';
   createdAt: Date;
   lastSyncedAt?: Date;
 }
+
+export type ThirdPartyAccountType = 
+  | 'AZURE_DEVOPS'
+  | 'JIRA';
 
 export interface NoteNotification {
   id?: number;
@@ -44,7 +50,7 @@ export type NotificationType =
 
 export class QuickNotesDB extends Dexie {
   notes!: Table<Note>;
-  azureUsers!: Table<AzureUser>;
+  thirdPartyAccount!: Table<ThirdPartyAccount>;
   notifications!: Table<NoteNotification>;
   deletedSyncedNotes!: Table<DeletedSyncedNotes>;
 
@@ -52,7 +58,7 @@ export class QuickNotesDB extends Dexie {
     super('QuickNotesDB');
     this.version(1).stores({
       notes: '++id, &noteId, azureId, title, createdAt', // indexed fields
-      azureUsers: '++id, azureId, createdAt',
+      thirdPartyAccount: '++id, accountType, thirdPartyUserId',
       notifications: '++id, noteId, createdAt, isRead',
       deletedSyncedNotes: '++id, thirdPartyId',
     });
