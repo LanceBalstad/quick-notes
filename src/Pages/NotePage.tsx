@@ -218,7 +218,7 @@ function NotePage() {
       await fetchNotes();
       await fetchTrashNotes();
 
-      handleOpenNote();
+      handleOpenNote(currentNoteId);
     }
   };
 
@@ -238,7 +238,7 @@ function NotePage() {
       await fetchNotes();
       await fetchTrashNotes();
 
-      handleOpenNote(noteId);
+      handleOpenNote();
     }
   };
 
@@ -260,6 +260,7 @@ function NotePage() {
             onRecoverNote={handleRecoverNote}
             onSync={handleSync}
             lastSyncedAt={lastSyncedAt ?? undefined}
+            isSyncing={isSyncing}
           />
         </div>
         <Body

@@ -89,7 +89,7 @@ const Body = ({
     const newValue = before + "\n" + lineInfo.leadingWhitespace + "- " + after;
     updateTextAreaState(
       newValue,
-      before.length + lineInfo.leadingWhitespace.length + 2
+      before.length + lineInfo.leadingWhitespace.length + 2,
     ); // cursor after dash + space
   };
 
@@ -150,8 +150,13 @@ const Body = ({
     const lineInfo = getCurrentLineInfo(before);
 
     // If backspace is pressed and we're right after the dash at line start, remove the dash
-    if (isListLine(lineInfo) && lineInfo.previousChar === "-") {
+    if (
+      isListLine(lineInfo) &&
+      lineInfo.previousChar === "-" &&
+      selectionStart === lineInfo.firstNonWhitespaceIndex + 1
+    ) {
       e.preventDefault();
+      // if we are in the if statement we already know that this is the first dash of the line
       const dashIndex = lineInfo.dashIndex;
       before =
         before.slice(0, lineInfo.lineStart) + before.slice(dashIndex + 1);
@@ -193,7 +198,7 @@ const Body = ({
           value={body}
           readOnly={isDeleted}
           onChange={(e) => {
-            setBody(e.target.value), setHasUserEdited(true);
+            (setBody(e.target.value), setHasUserEdited(true));
           }}
           onKeyDown={handleCustomKeyDown}
           aria-label="Note body"

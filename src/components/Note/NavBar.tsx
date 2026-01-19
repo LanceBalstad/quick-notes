@@ -18,6 +18,7 @@ import {
   SaveIcon,
   NoteNotificationIcon,
   SyncIcon,
+  IsSyncingIcon,
   TrashIcon,
 } from "../Icons/IconIndex";
 
@@ -36,6 +37,7 @@ interface NavBarProps {
   onRecoverNote: (noteId?: number) => void;
   onSync: () => Promise<void>;
   lastSyncedAt?: Date;
+  isSyncing: boolean;
 }
 
 const NavBar = ({
@@ -52,6 +54,7 @@ const NavBar = ({
   onRecoverNote,
   onSync,
   lastSyncedAt,
+  isSyncing,
 }: NavBarProps) => {
   const navigate = useNavigate();
 
@@ -332,14 +335,20 @@ const NavBar = ({
           )}
 
           <div className="sync-group">
-            <button
-              className="sync-azure-notes-button"
-              onClick={() => onSync()}
-            >
-              {/* Sync button icon path */}
-              <SyncIcon />
-            </button>
-
+            {isSyncing ? (
+              <button className="isSyncing-button">
+                {/* IsSync button icon path */}
+                <IsSyncingIcon />
+              </button>
+            ) : (
+              <button
+                className="sync-azure-notes-button"
+                onClick={() => onSync()}
+              >
+                {/* Sync button icon path */}
+                <SyncIcon />
+              </button>
+            )}
             <div className="last-happened">
               <span>LAST SYNCED</span>
               <span className="last-happened-date">

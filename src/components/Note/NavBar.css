@@ -53,6 +53,7 @@
 
 .save-button,
 .sync-azure-notes-button,
+.isSyncing-button,
 .delete-button,
 .file-button,
 .dropdown-button {
@@ -64,6 +65,7 @@
 
 .save-button svg,
 .sync-azure-notes-button svg,
+.isSyncing-button svg,
 .delete-button svg,
 .file-button svg,
 .dropdown-button svg {
@@ -72,6 +74,7 @@
 
 .save-button svg,
 .sync-azure-notes-button svg,
+.isSyncing-button svg,
 .delete-button svg,
 .file-button .file-dot,
 .dropdown-button svg {
@@ -85,10 +88,6 @@
 .file-button:hover .file-dot,
 .dropdown-button:not(:disabled):hover svg {
   stroke: #65706f;
-}
-
-.dropdown-button svg {
-  /* fill: #A8BFBC; */
 }
 
 /* trash dropdown button disabled view */
@@ -295,7 +294,3 @@
   font-size: 10px;
   opacity: 0.7;
 }
-
-
-
-
