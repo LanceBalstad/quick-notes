@@ -253,7 +253,7 @@ const NavBar = ({
               onMouseLeave={() => setHoveredNoteId(null)}
             >
               <div
-                className="dropdown-item"
+                className="dropdown-item new-note-item"
                 onClick={() => {
                   onOpenNote(undefined);
                   setIsNoteListOpen(false);
