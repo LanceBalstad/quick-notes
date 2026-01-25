@@ -1,7 +1,7 @@
 import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
 import { useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import {
   getNotificationsByNoteId,
   NoteNotification,
@@ -21,6 +21,7 @@ import {
   IsSyncingIcon,
   TrashIcon,
 } from "../Icons/IconIndex";
+import { ConfirmModalContext } from "../../App";
 
 interface NavBarProps {
   // multiple methods, such as onSave, is in the NotePage component to grab body value
@@ -56,6 +57,8 @@ const NavBar = ({
   lastSyncedAt,
   isSyncing,
 }: NavBarProps) => {
+  const confirmModal = useContext(ConfirmModalContext);
+
   const navigate = useNavigate();
 
   const navToSyncAzurePage = () => {
@@ -443,14 +446,14 @@ const NavBar = ({
                           onClick={(e) => {
                             e.stopPropagation();
 
-                            const isConfirmed = window.confirm(
+                            confirmModal?.showConfirm(
+                              "Permanent Deletion",
                               "Are you sure you want to permanently delete this note?",
+                              async () => {
+                                onHardDelete(note.id);
+                                setIsTrashListOpen(false);
+                              },
                             );
-
-                            if (isConfirmed) {
-                              onHardDelete(note.id);
-                              setIsTrashListOpen(false);
-                            }
                           }}
                         >
                           Delete

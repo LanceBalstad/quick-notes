@@ -1,32 +1,64 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, createContext } from "react";
+import { ConfirmModal } from "./components/ConfirmModal/ConfirmModal";
 import "./App.css";
 import { RouterProvider } from "react-router-dom";
 import { Router } from "./Routing/Router";
 import TitleBar from "./components/TitleBar/TitleBar";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+  });
 
-  // For learning purposes
-  // communicates between my react frontend and tauri backend
-  // invoke is a tauri api that calls a rust command from the fontend typescript
-  // for example, this calls the "gree" command in src-tauri/src/lib.rs
-  // To my knowledge, every function that calls a tauri command must be async. invoke returns a promise
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const showConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+  ) => {
+    setConfirmState({
+      open: true,
+      title,
+      message,
+      onConfirm,
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState({
+      open: false,
+      title: "",
+      message: "",
+    });
+  };
 
   return (
     <>
+      {confirmState.open && (
+        <ConfirmModal
+          title={confirmState.title}
+          message={confirmState.message}
+          onConfirm={() => {
+            confirmState.onConfirm?.();
+            closeConfirm();
+          }}
+          onCancel={closeConfirm}
+        />
+      )}
       <div className="app-root">
         <div className="titleBarWrapper">
           <TitleBar />
         </div>
         <div className="contentWrapper">
-          <RouterProvider router={Router} />
+          <ConfirmModalContext.Provider value={{ showConfirm }}>
+            <RouterProvider router={Router} />
+          </ConfirmModalContext.Provider>
         </div>
       </div>
     </>
@@ -34,3 +66,6 @@ function App() {
 }
 
 export default App;
+export const ConfirmModalContext = createContext<{
+  showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+} | null>(null);

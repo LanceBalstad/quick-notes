@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { handleSetThirdPartyAccount } from "../../Helpers/ThirdPartyAccountHelper";
 import { getThirdPartyAccount } from "../../db/Services/ThirdPartyAccountService";
+import { ConfirmModalContext } from "../../App";
 
 const SyncAzure = () => {
+  const confirmModal = useContext(ConfirmModalContext);
   // const [token, setToken] = useState("");
   const [pat, setPat] = useState("");
   // const [storedPat, setStoredPat] = useState<string | null>(null);
@@ -72,16 +74,15 @@ const SyncAzure = () => {
       const hasPAT = await invoke("has_devops_pat");
 
       // if PAT already exists, ensure that the user is ok overriding it before continuing
-      let isConfirmed = true;
       if (hasPAT) {
-        isConfirmed = window.confirm(
+        confirmModal?.showConfirm(
+          "Override Personal Access Token",
           "This will override your current PAT. Are you sure your want to continue?",
+          async () => {
+            await invoke("store_devops_pat", { pat });
+            setPat("");
+          },
         );
-      }
-
-      if (isConfirmed) {
-        await invoke("store_devops_pat", { pat });
-        setPat("");
       }
     }
   }

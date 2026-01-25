@@ -1,4 +1,4 @@
-use crate::commands::devops_api::devops_get_users_work_items_pat;
+use crate::commands::devops_api::{devops_get_users_work_items_pat, devops_get_work_items_pat};
 use serde::{Deserialize, Serialize};
 use tauri::{command, AppHandle};
 
@@ -37,6 +37,22 @@ pub struct DevOpsCreateNoteReq {
 #[derive(Serialize)]
 pub struct DevOpsDeleteNoteReq {
     pub azure_id: i32,
+}
+
+#[command]
+pub async fn is_devops_note_finished(app: AppHandle, id: i32) -> Result<bool, String> {
+    let work_item_json = devops_get_work_items_pat(&app, vec![id]).await?;
+
+    let response: DevOpsWorkItemsResponse =
+        serde_json::from_str(&work_item_json).map_err(|e| e.to_string())?;
+
+    // let-else block. let work_item be the first value grabbed, otherwise return true
+    let Some(work_item) = response.value.first() else {
+        return Ok(true);
+    };
+
+    // return if the work_item grabbed has a closed_date
+    Ok(work_item.fields.closed_date.is_some())
 }
 
 #[command]

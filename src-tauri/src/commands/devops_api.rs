@@ -27,7 +27,7 @@ pub async fn devops_get_users_work_items_pat(app: AppHandle) -> Result<String, S
 }
 
 #[command]
-async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<String, String> {
+pub async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<String, String> {
     let endpoint =
         "https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitemsbatch?api-version=7.1";
 

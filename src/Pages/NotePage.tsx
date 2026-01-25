@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useContext } from "react";
 import NavBar from "../components/Note/NavBar";
 import Body from "../components/Note/Body";
 import { invoke } from "@tauri-apps/api/core";
@@ -25,8 +25,11 @@ import {
   addNoteWithNotification,
   softDeleteNotesWithNotificationUsingAzureId,
 } from "../Helpers/NoteHelper";
+import { ConfirmModalContext } from "../App";
 
 function NotePage() {
+  const confirmModal = useContext(ConfirmModalContext);
+
   const [body, setBody] = React.useState("");
   const [hasUserEdited, setHasUserEdited] = React.useState(false);
   const [noteList, setNoteList] = React.useState<Note[]>([]);
@@ -224,11 +227,36 @@ function NotePage() {
 
   const handleRecoverNote = async (noteId?: number) => {
     if (noteId) {
-      await recoverNoteWithNotification(noteId);
-      await fetchNotes();
-      await fetchTrashNotes();
+      const isNoteFinished = await handleIsDevopsNotesFinished(noteId);
 
-      handleOpenNote(noteId);
+      if (isNoteFinished) {
+        confirmModal?.showConfirm(
+          "Create an Unlinked Copy?",
+          'This note is linked to a complete Azure work item. \nRevert the work item back to "Active" or click Confirm to create an unlinked copy.' +
+            "\n(The copy won't follow the linked work item's status)",
+          async () => {
+            const linkedNote = await getNote(noteId);
+
+            if (linkedNote) {
+              const newId = await addNote({
+                title: "(COPY): " + linkedNote.title,
+                content: linkedNote.content,
+                createdAt: linkedNote.createdAt,
+                lastSavedAt: linkedNote.lastSavedAt,
+                softDeleted: false,
+              });
+
+              fetchNotes();
+              handleOpenNote(Number(newId));
+            }
+          },
+        );
+      } else {
+        await recoverNoteWithNotification(noteId);
+        await fetchNotes();
+        await fetchTrashNotes();
+        handleOpenNote(noteId);
+      }
     }
   };
 
@@ -240,6 +268,25 @@ function NotePage() {
 
       handleOpenNote();
     }
+  };
+
+  const handleIsDevopsNotesFinished = async (
+    noteId?: number,
+  ): Promise<boolean> => {
+    if (noteId === undefined) {
+      return false; // if noteId does not exist, return false. No note synced
+    }
+
+    const note = await getNote(noteId);
+
+    if (!note || note.azureId === undefined) {
+      return false; // if note or azureId does not exist, return false. No note synced
+    }
+
+    // return true if note in azure is either completed or it does not exists
+    return await invoke<boolean>("is_devops_note_finished", {
+      id: note.azureId,
+    });
   };
 
   return (
