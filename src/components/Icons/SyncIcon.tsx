@@ -1,0 +1,18 @@
+const SyncIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M15.9998 21.3333L21.3332 16M21.3332 16L15.9998 10.6667M21.3332 16L10.6665 16M29.3332 16C29.3332 23.3638 23.3636 29.3333 15.9998 29.3333C8.63604 29.3333 2.6665 23.3638 2.6665 16C2.6665 8.6362 8.63604 2.66667 15.9998 2.66667C23.3636 2.66667 29.3332 8.6362 29.3332 16Z"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export default SyncIcon;

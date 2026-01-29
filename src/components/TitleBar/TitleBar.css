@@ -1,0 +1,39 @@
+.window-controls {
+  display: flex;
+}
+
+.window-controls button {
+  width: 42px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: #A8BFBC;
+  cursor: pointer;
+  line-height: 1;
+  transition: 0.12s ease-out;
+}
+
+.minimize-button button:hover,
+.maximize-button button:hover {
+  background-color: #132525;
+}
+
+.close-button button:hover {
+  background-color: #B23A3A;
+}
+
+.titlebar {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background-color: #193232;
+  color: #A8BFBC;
+  border-bottom: 1px solid #A8BFBC;
+  flex-shrink: 0;
+}
+
+.titlebar span {
+  padding: 0 8px;
+}

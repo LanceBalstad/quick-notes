@@ -1,9 +1,4 @@
-import React from "react";
-import {
-  RouterProvider,
-  createBrowserRouter,
-  Navigate,
-} from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import NotePage from "../Pages/NotePage";
 
 export const Router = createBrowserRouter([

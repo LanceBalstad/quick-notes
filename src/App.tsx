@@ -1,56 +1,71 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, createContext } from "react";
+import { ConfirmModal } from "./components/ConfirmModal/ConfirmModal";
 import "./App.css";
 import { RouterProvider } from "react-router-dom";
 import { Router } from "./Routing/Router";
+import TitleBar from "./components/TitleBar/TitleBar";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+  });
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const showConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+  ) => {
+    setConfirmState({
+      open: true,
+      title,
+      message,
+      onConfirm,
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState({
+      open: false,
+      title: "",
+      message: "",
+    });
+  };
 
   return (
     <>
-      <main className="container">
-        <h1>Welcome to Tauri + React</h1>
-
-        <div className="row">
-          <a href="https://vite.dev" target="_blank">
-            <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-          </a>
-          <a href="https://tauri.app" target="_blank">
-            <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </div>
-        <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-        <form
-          className="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            greet();
+      {confirmState.open && (
+        <ConfirmModal
+          title={confirmState.title}
+          message={confirmState.message}
+          onConfirm={() => {
+            confirmState.onConfirm?.();
+            closeConfirm();
           }}
-        >
-          <input
-            id="greet-input"
-            onChange={(e) => setName(e.currentTarget.value)}
-            placeholder="Enter a name..."
-          />
-          <button type="submit">Greet</button>
-        </form>
-        <p>{greetMsg}</p>
-      </main>
-      <RouterProvider router={Router} />
+          onCancel={closeConfirm}
+        />
+      )}
+      <div className="app-root">
+        <div className="titleBarWrapper">
+          <TitleBar />
+        </div>
+        <div className="contentWrapper">
+          <ConfirmModalContext.Provider value={{ showConfirm }}>
+            <RouterProvider router={Router} />
+          </ConfirmModalContext.Provider>
+        </div>
+      </div>
     </>
   );
 }
 
 export default App;
+export const ConfirmModalContext = createContext<{
+  showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+} | null>(null);
