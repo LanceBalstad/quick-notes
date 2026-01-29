@@ -34,10 +34,6 @@ export const getThirdPartyAccount = async (): Promise<ThirdPartyAccount | undefi
   return await db.thirdPartyAccount.toCollection().first();
 };
 
-export const getLastSyncedDate = async (): Promise<ThirdPartyAccount | undefined> => {
-  return await db.thirdPartyAccount.toCollection().first();
-};
-
 // Delete
 export const deleteThirdPartyAcount = async () => {
   const existingAccount = await getThirdPartyAccount();

@@ -1,14 +1,16 @@
-use crate::commands::devops_helper::call_wiql_query;
+use crate::commands::devops_helper::call_wiql_query_with_pat;
 use tauri::{command, AppHandle};
 use tauri_plugin_keyring::KeyringExt;
 
 const SERVICE: &str = "quick-notes";
 const ACCOUNT: &str = "azure_devops_pat";
 
-async fn validate_pat(app: &AppHandle) -> Result<(), String> {
+async fn validate_pat(app: &AppHandle, pat: &str) -> Result<(), String> {
     let wiql = "Select [System.Id] From WorkItems";
 
-    call_wiql_query(wiql, app).await.map(|_| ())
+    call_wiql_query_with_pat(wiql, app, Some(pat))
+        .await
+        .map(|_| ())
 }
 
 #[command]
@@ -17,7 +19,7 @@ pub async fn store_devops_pat(app: AppHandle, pat: String) -> Result<String, Str
         return Err("PAT cannot be empty".into());
     }
 
-    validate_pat(&app).await?;
+    validate_pat(&app, &pat).await?;
 
     app.keyring()
         .set_password(SERVICE, ACCOUNT, &pat)
@@ -63,4 +65,21 @@ pub async fn delete_devops_pat(app: AppHandle) -> Result<String, String> {
             }
         }
     }
+}
+
+#[command]
+pub async fn save_devops_org_project(
+    app: AppHandle,
+    organization: String,
+    project: String,
+) -> Result<String, String> {
+    app.keyring()
+        .set_password(SERVICE, "azure_devops_org", &organization)
+        .map_err(|e| format!("Failed to store organization: {}", e))?;
+
+    app.keyring()
+        .set_password(SERVICE, "azure_devops_project", &project)
+        .map_err(|e| format!("Failed to store project: {}", e))?;
+
+    Ok("Organization and project saved successfully".into())
 }

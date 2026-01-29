@@ -78,18 +78,38 @@ pub async fn call_post(endpoint: &str, body: &str, app: &AppHandle) -> Result<St
         .map_err(|e| format!("Read body error: {}", e))
 }
 
+pub async fn call_wiql_query(wiql: &str, app: &AppHandle) -> Result<String, String> {
+    call_wiql_query_with_pat(wiql, app, None).await
+}
+
 // Helper function to run WIQL query
 // Used with any query for work orders
 // AND used for validating PAT since the only api calls we have authorization to use are work order reads
-pub async fn call_wiql_query(wiql: &str, app: &AppHandle) -> Result<String, String> {
-    let pat = get_pat(&app)?;
+pub async fn call_wiql_query_with_pat(
+    wiql: &str,
+    app: &AppHandle,
+    pat: Option<&str>,
+) -> Result<String, String> {
+    let pat_to_use = if let Some(p) = pat {
+        p.to_string()
+    } else {
+        get_pat(&app)?
+    };
 
-    let auth = basic_auth_header_for_pat(&pat);
+    let auth = basic_auth_header_for_pat(&pat_to_use);
 
     let client = Client::new();
 
+    let org = get_devops_organization(&app)?;
+    let project = get_devops_project(&app)?;
+
+    let endpoint = format!(
+        "https://dev.azure.com/{}/{}/_apis/wit/wiql?api-version=7.1",
+        org, project
+    );
+
     let res = client
-        .post("https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/wiql?api-version=7.1")
+        .post(&endpoint)
         .header("Authorization", auth)
         .header("Content-Type", "application/json")
         .body(format!(r#"{{"query": "{wiql}"}}"#))
@@ -107,7 +127,7 @@ pub async fn call_wiql_query(wiql: &str, app: &AppHandle) -> Result<String, Stri
     }
 
     if status.as_u16() == 203 {
-        return Err("Pat does not have permission (203)".into());
+        return Err("Pat does not have permission (203) \nMake sure you give your PAT Work Item Read permission.".into());
     }
 
     let return_body = res
@@ -116,4 +136,18 @@ pub async fn call_wiql_query(wiql: &str, app: &AppHandle) -> Result<String, Stri
         .map_err(|e| format!("Read body error: {}", e))?;
 
     Ok(return_body)
+}
+
+pub fn get_devops_organization(app: &AppHandle) -> Result<String, String> {
+    app.keyring()
+        .get_password(SERVICE, "azure_devops_org")
+        .map_err(|_| "Failed to access keychain".to_string())?
+        .ok_or("No organization stored".to_string())
+}
+
+pub fn get_devops_project(app: &AppHandle) -> Result<String, String> {
+    app.keyring()
+        .get_password(SERVICE, "azure_devops_project")
+        .map_err(|_| "Failed to access keychain".to_string())?
+        .ok_or("No project stored".to_string())
 }

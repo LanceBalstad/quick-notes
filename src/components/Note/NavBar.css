@@ -13,9 +13,15 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  flex: 1;
   min-width: 0;
 }
+
+.dropdown-button-combo.file .combo-dropdown {
+  min-width: 180px;
+  max-width: 400px;
+  width: max-content;
+}
+
 
 .dropdown-button-combo input{
   flex: 1;

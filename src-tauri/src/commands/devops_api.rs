@@ -1,4 +1,7 @@
-use crate::commands::devops_helper::{call_get, call_post, call_wiql_query, extract_item_ids};
+use crate::commands::devops_helper::{
+    call_get, call_post, call_wiql_query, extract_item_ids, get_devops_organization,
+    get_devops_project,
+};
 use serde::Serialize;
 use tauri::{command, AppHandle};
 
@@ -10,10 +13,14 @@ struct WorkItemsBatchRequestBody {
 
 #[command]
 pub async fn devops_get_work_item_pat(app: AppHandle) -> Result<String, String> {
-    let endpoint = "https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitems/1?api-version=7.2-preview.3";
+    let org = get_devops_organization(&app)?;
+    let project = get_devops_project(&app)?;
+    let endpoint = format!(
+        "https://dev.azure.com/{}/{}/_apis/wit/workitems/1?api-version=7.2-preview.3",
+        org, project
+    );
 
-    let return_body = call_get(endpoint, &app).await?;
-
+    let return_body = call_get(&endpoint, &app).await?;
     Ok(return_body)
 }
 
@@ -28,8 +35,12 @@ pub async fn devops_get_users_work_items_pat(app: AppHandle) -> Result<String, S
 
 #[command]
 pub async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result<String, String> {
-    let endpoint =
-        "https://dev.azure.com/Lbalstad/Quick%20Notes/_apis/wit/workitemsbatch?api-version=7.1";
+    let org = get_devops_organization(&app)?;
+    let project = get_devops_project(&app)?;
+    let endpoint = format!(
+        "https://dev.azure.com/{}/{}/_apis/wit/workitemsbatch?api-version=7.1",
+        org, project
+    );
 
     let body = WorkItemsBatchRequestBody {
         ids: ids,
@@ -43,7 +54,7 @@ pub async fn devops_get_work_items_pat(app: &AppHandle, ids: Vec<i32>) -> Result
     };
 
     let return_body = call_post(
-        endpoint,
+        &endpoint,
         &serde_json::to_string(&body).map_err(|e| e.to_string())?,
         &app,
     )

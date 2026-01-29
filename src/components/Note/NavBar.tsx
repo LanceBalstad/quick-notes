@@ -39,6 +39,7 @@ interface NavBarProps {
   onSync: () => Promise<void>;
   lastSyncedAt?: Date;
   isSyncing: boolean;
+  onOpenSyncAzure: () => void;
 }
 
 const NavBar = ({
@@ -56,45 +57,32 @@ const NavBar = ({
   onSync,
   lastSyncedAt,
   isSyncing,
+  onOpenSyncAzure,
 }: NavBarProps) => {
   const confirmModal = useContext(ConfirmModalContext);
 
   const navigate = useNavigate();
 
-  const navToSyncAzurePage = () => {
-    navigate("/sync-azure");
-  };
-
-  const navToThirdPartyNotesPage = () => {
-    navigate("/third-party-notes");
-  };
-
   const [isNoteListOpen, setIsNoteListOpen] = useState(false);
-
   const [isTrashListOpen, setIsTrashListOpen] = useState(false);
-
+  const [isFileListOpen, setIsFileListOpen] = useState(false);
   const [trashHasNotifications, setTrashHasNotifications] = useState(false);
-
   const [noteListHasNotifications, setNoteListHasNotifications] =
     useState(false);
-
   const [noteNotifications, setNoteNotifications] = useState<
     Record<number, boolean>
   >({});
-
   const [trashNotifications, setTrashNotifications] = useState<
     Record<number, boolean>
   >({});
-
   const [notificationMessages, setNotificationMessages] = useState<
     Record<number, NoteNotification[]>
   >({});
 
   const [hoveredNoteId, setHoveredNoteId] = useState<number | null>(null);
-
   const titleComboRef = useRef<HTMLDivElement | null>(null);
-
   const trashComboRef = useRef<HTMLDivElement | null>(null);
+  const fileDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const NotificationTooltip = ({
     notifications,
@@ -123,6 +111,9 @@ const NavBar = ({
       const clickedOutsideTrash =
         trashComboRef.current && !trashComboRef.current.contains(target);
 
+      const clickedOutsideFile =
+        fileDropdownRef.current && !fileDropdownRef.current.contains(target);
+
       if (clickedOutsideTitle) {
         setIsNoteListOpen(false);
       }
@@ -130,16 +121,20 @@ const NavBar = ({
       if (clickedOutsideTrash) {
         setIsTrashListOpen(false);
       }
+
+      if (clickedOutsideFile) {
+        setIsFileListOpen(false);
+      }
     }
 
-    if (isNoteListOpen || isTrashListOpen) {
+    if (isNoteListOpen || isTrashListOpen || isFileListOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [isNoteListOpen, isTrashListOpen]);
+  }, [isNoteListOpen, isTrashListOpen, isFileListOpen]);
 
   // fetch notifs for note list logic whenever note list updates
   useEffect(() => {
@@ -228,10 +223,56 @@ const NavBar = ({
   return (
     <>
       <div className="navbar">
-        <button className="file-button">
-          {/* file button icon path */}
-          <FileIcon />
-        </button>
+        <div className="dropdown-button-combo file" ref={fileDropdownRef}>
+          <button
+            className="file-button"
+            onClick={() => setIsFileListOpen((d) => !d)}
+          >
+            {/* file button icon path */}
+            <FileIcon />
+          </button>
+
+          {isFileListOpen && (
+            <div
+              className="combo-dropdown"
+              onMouseLeave={() => setHoveredNoteId(null)}
+            >
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  confirmModal?.showConfirm("Coming Soon...", "", () => {});
+                }}
+              >
+                Options
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  onOpenSyncAzure();
+                  setIsFileListOpen(false);
+                }}
+              >
+                Sync Azure
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  confirmModal?.showConfirm("Coming Soon...", "", () => {});
+                }}
+              >
+                Sync Jira
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  confirmModal?.showConfirm("Coming Soon...", "", () => {});
+                }}
+              >
+                Sync Trello
+              </div>
+            </div>
+          )}
+        </div>
 
         <div
           className={`note-list-notification ${
@@ -309,13 +350,6 @@ const NavBar = ({
             placeholder="Untitled..."
           />
         </div>
-
-        <button
-          className="syncAzureButton"
-          onClick={() => navToSyncAzurePage()}
-        >
-          SyncAzure
-        </button>
 
         <div className="right-buttons">
           {!isDeleted && (

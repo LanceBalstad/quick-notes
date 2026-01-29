@@ -16,6 +16,8 @@ export interface ThirdPartyAccount {
   accountType: ThirdPartyAccountType;
   thirdPartyUserId?: string;
   authMethod: 'OAUTH' | 'PAT';
+  organizationName?: string;
+  projectName?: string;
   createdAt: Date;
   lastSyncedAt?: Date;
 }

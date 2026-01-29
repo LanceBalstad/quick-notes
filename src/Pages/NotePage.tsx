@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useContext } from "react";
+import React, { useEffect, useRef, useContext, useState } from "react";
 import NavBar from "../components/Note/NavBar";
 import Body from "../components/Note/Body";
 import { invoke } from "@tauri-apps/api/core";
@@ -25,20 +25,22 @@ import {
   addNoteWithNotification,
   softDeleteNotesWithNotificationUsingAzureId,
 } from "../Helpers/NoteHelper";
+import SyncAzureModal from "../components/SyncAzureModal/SyncAzureModal";
 import { ConfirmModalContext } from "../App";
 
 function NotePage() {
   const confirmModal = useContext(ConfirmModalContext);
 
-  const [body, setBody] = React.useState("");
-  const [hasUserEdited, setHasUserEdited] = React.useState(false);
-  const [noteList, setNoteList] = React.useState<Note[]>([]);
-  const [currentNoteId, setCurrentNoteId] = React.useState<number | null>(null);
-  const [title, setTitle] = React.useState("");
-  const [trashList, setTrashList] = React.useState<Note[]>([]);
-  const [lastSyncedAt, setLastSyncedAt] = React.useState<Date | null>(null);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [body, setBody] = useState("");
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [noteList, setNoteList] = useState<Note[]>([]);
+  const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
+  const [title, setTitle] = useState("");
+  const [trashList, setTrashList] = useState<Note[]>([]);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncAzureOpen, setIsSyncAzureOpen] = useState(false);
 
   const currentNote = noteList.find((note) => note.id === currentNoteId);
 
@@ -84,7 +86,11 @@ function NotePage() {
         await handleSave(false);
       } catch (error) {
         console.error("Error auto-saving note:", error);
-        alert("Failed to auto-save note. Please try to save manually.");
+        confirmModal?.showConfirm(
+          "Failed Auto-Save",
+          "Failed to auto-save note. Please try to save manually.",
+          () => {},
+        );
       } finally {
         setIsSaving(false);
       }
@@ -111,6 +117,17 @@ function NotePage() {
   const handleSync = async () => {
     if (isSyncingRef.current) {
       console.log("Skipping auto-sync since sync is already running");
+      return;
+    }
+
+    const thirdPartyAccount = await getThirdPartyAccount();
+
+    // Skip sync if there is no account set or if the organization/project is not set
+    if (
+      !thirdPartyAccount ||
+      !thirdPartyAccount.organizationName ||
+      !thirdPartyAccount.projectName
+    ) {
       return;
     }
 
@@ -165,11 +182,19 @@ function NotePage() {
   const handleSave = async (saveTitle: boolean = true) => {
     const isUniqueName = await isCurrentNameUnique(currentNoteId || -1, title);
     if (title.trim() === "" && saveTitle) {
-      alert("Note title cannot be empty!");
+      confirmModal?.showConfirm(
+        "Invalid Note",
+        "Note title cannot be empty!",
+        () => {},
+      );
       return;
     }
     if (!isUniqueName && saveTitle) {
-      alert("Note title must be unique!");
+      confirmModal?.showConfirm(
+        "Invalid Note",
+        "Note title must be unique!",
+        () => {},
+      );
       return;
     }
     if (currentNoteId) {
@@ -308,6 +333,7 @@ function NotePage() {
             onSync={handleSync}
             lastSyncedAt={lastSyncedAt ?? undefined}
             isSyncing={isSyncing}
+            onOpenSyncAzure={() => setIsSyncAzureOpen(true)}
           />
         </div>
         <Body
@@ -318,6 +344,9 @@ function NotePage() {
           isDeleted={currentNoteId != undefined && !currentNote}
         />
       </div>
+      {isSyncAzureOpen && (
+        <SyncAzureModal onClose={() => setIsSyncAzureOpen(false)} />
+      )}
     </>
   );
 }
