@@ -1,6 +1,5 @@
 import "./NavBar.css";
 import { Note } from "../../db/Services/NotesService";
-import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect, useContext } from "react";
 import {
   getNotificationsByNoteId,
@@ -60,8 +59,6 @@ const NavBar = ({
   onOpenSyncAzure,
 }: NavBarProps) => {
   const confirmModal = useContext(ConfirmModalContext);
-
-  const navigate = useNavigate();
 
   const [isNoteListOpen, setIsNoteListOpen] = useState(false);
   const [isTrashListOpen, setIsTrashListOpen] = useState(false);
@@ -345,6 +342,7 @@ const NavBar = ({
           <input
             type="text"
             value={title || ""}
+            title={title || "Untitled"}
             readOnly={isDeleted}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled..."

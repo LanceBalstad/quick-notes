@@ -32,35 +32,35 @@ export const SyncAzureModal = ({ onClose }: SyncAzureModalProps) => {
     };
   }, []);
 
-  async function syncAzure() {
-    onClose();
-    // First try to set new third party account
-    // if a new third party account is set, then connect to azure
-    const currentThirdPartyAccount = await getThirdPartyAccount();
+  // async function syncAzure() {
+  //   onClose();
+  //   // First try to set new third party account
+  //   // if a new third party account is set, then connect to azure
+  //   const currentThirdPartyAccount = await getThirdPartyAccount();
 
-    const newThirdPartyAccountWasSet = await handleSetThirdPartyAccount(
-      {
-        accountType: "AZURE_DEVOPS",
-        thirdPartyUserId: "TODO",
-        authMethod: "OAUTH",
-        createdAt: new Date(),
-        lastSyncedAt: currentThirdPartyAccount?.lastSyncedAt ?? undefined,
-      },
-      confirmModal,
-    );
+  //   const newThirdPartyAccountWasSet = await handleSetThirdPartyAccount(
+  //     {
+  //       accountType: "AZURE_DEVOPS",
+  //       thirdPartyUserId: "TODO",
+  //       authMethod: "OAUTH",
+  //       createdAt: new Date(),
+  //       lastSyncedAt: currentThirdPartyAccount?.lastSyncedAt ?? undefined,
+  //     },
+  //     confirmModal,
+  //   );
 
-    if (newThirdPartyAccountWasSet) {
-      await invoke("login_to_azure");
+  //   if (newThirdPartyAccountWasSet) {
+  //     await invoke("login_to_azure");
 
-      // if PAT exists, delete it
-      // otherwise if user tries to switch back to PAT, the program will say that
-      // they already have a PAT and ask if they want to replace it, causing confusion
-      const hasPAT = await invoke("has_devops_pat");
-      if (hasPAT) {
-        await invoke("delete_devops_pat");
-      }
-    }
-  }
+  //     // if PAT exists, delete it
+  //     // otherwise if user tries to switch back to PAT, the program will say that
+  //     // they already have a PAT and ask if they want to replace it, causing confusion
+  //     const hasPAT = await invoke("has_devops_pat");
+  //     if (hasPAT) {
+  //       await invoke("delete_devops_pat");
+  //     }
+  //   }
+  // }
 
   async function syncDevopsPAT(pat: string) {
     onClose();
@@ -101,24 +101,28 @@ export const SyncAzureModal = ({ onClose }: SyncAzureModalProps) => {
     if (newThirdPartyAccountWasSet) {
       const hasPAT = await invoke("has_devops_pat");
 
+      const storePAT = async () => {
+        try {
+          await invoke("store_devops_pat", { pat });
+          setPat("");
+        } catch (err) {
+          confirmModal?.showConfirm(
+            "Error Saving PAT",
+            `Failed to store PAT: ${err instanceof Error ? err.message : String(err)}`,
+            () => {},
+          );
+        }
+      };
+
       // if PAT already exists, ensure that the user is ok overriding it before continuing
       if (hasPAT) {
         confirmModal?.showConfirm(
           "Override Personal Access Token",
           "This will override your current PAT. Are you sure your want to continue?",
-          async () => {
-            try {
-              await invoke("store_devops_pat", { pat });
-              setPat("");
-            } catch (err) {
-              confirmModal?.showConfirm(
-                "Error Saving PAT",
-                `Failed to store PAT: ${err instanceof Error ? err.message : String(err)}`,
-                () => {},
-              );
-            }
-          },
+          async () => await storePAT(),
         );
+      } else {
+        await storePAT();
       }
     }
   }

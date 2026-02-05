@@ -1,5 +1,4 @@
-import { getAllNotifications, NoteNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
-import { getNote } from "../db/Services/NotesService";
+import { getAllNotifications, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
 import { Note, NotificationType } from "../db/QuickNotesDB";
 
 export function formatNotification(

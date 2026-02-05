@@ -1,8 +1,7 @@
 import { addNote, softDeleteNotesByAzureIds, getNote, softDeleteNote, recoverNote, hardDeleteNote } from "../db/Services/NotesService";
-import { addNotification, deleteNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
+import { addNotification, deleteNotificationsByNoteIds } from "../db/Services/NotificationsService";
 import { addDeletedSyncedNote } from "../db/Services/HardDeletedSyncedNotesService";
 import { NotificationType, Note } from "../db/QuickNotesDB";
-import { deleteNotificationsForNotes } from "./NotificationHelper";
 
 export async function addNoteWithNotification(
   note: Omit<Note, "id" | "noteId">,

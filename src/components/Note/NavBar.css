@@ -5,11 +5,11 @@
   border-bottom: 1px solid #09322E;
   box-sizing: border-box;
   align-items: center;
-  padding: 0 6px;
   min-height: 50px;
 }
 
 .dropdown-button-combo {
+  flex: 1;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -22,6 +22,9 @@
   width: max-content;
 }
 
+.dropdown-button-combo.file {
+  flex: none;
+}
 
 .dropdown-button-combo input{
   flex: 1;
@@ -35,6 +38,7 @@
   padding: 4px 8px;
   min-width: 0;
   border: 2px solid transparent; /* added to prevent shift on hover */
+  text-overflow: ellipsis;
 }
 
 .dropdown-button-combo input:hover{
