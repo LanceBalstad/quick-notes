@@ -3,8 +3,6 @@ import {
   getThirdPartyAccount,
 } from "../db/Services/ThirdPartyAccountService";
 import { ThirdPartyAccount } from "../db/QuickNotesDB";
-import { useContext } from "react";
-import { ConfirmModalContext } from "../App";
 
 // returns true if third party account was set
 export async function handleSetThirdPartyAccount(

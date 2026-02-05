@@ -86,11 +86,11 @@ const Body = ({
     }
 
     // Line contains content after dash -> insert new dash line
-    const newValue = before + "\n" + lineInfo.leadingWhitespace + "- " + after;
+    const newValue = before + "\n" + lineInfo.leadingWhitespace + "-" + after;
     updateTextAreaState(
       newValue,
       before.length + lineInfo.leadingWhitespace.length + 2,
-    ); // cursor after dash + space
+    ); // cursor after dash
   };
 
   const handleTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -195,6 +195,7 @@ const Body = ({
       <div className="note-body">
         <textarea
           ref={textareaRef}
+          spellCheck={false}
           value={body}
           readOnly={isDeleted}
           onChange={(e) => {

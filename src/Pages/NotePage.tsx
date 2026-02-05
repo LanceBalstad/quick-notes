@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useContext, useState } from "react";
+import { useEffect, useRef, useContext, useState } from "react";
 import NavBar from "../components/Note/NavBar";
 import Body from "../components/Note/Body";
 import { invoke } from "@tauri-apps/api/core";
@@ -38,7 +38,7 @@ function NotePage() {
   const [title, setTitle] = useState("");
   const [trashList, setTrashList] = useState<Note[]>([]);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncAzureOpen, setIsSyncAzureOpen] = useState(false);
 
@@ -82,7 +82,7 @@ function NotePage() {
 
     const timeout = setTimeout(async () => {
       try {
-        setIsSaving(true);
+        // setIsSaving(true);
         await handleSave(false);
       } catch (error) {
         console.error("Error auto-saving note:", error);
@@ -92,7 +92,7 @@ function NotePage() {
           () => {},
         );
       } finally {
-        setIsSaving(false);
+        // setIsSaving(false);
       }
     }, 1000);
     return () => clearTimeout(timeout);
@@ -151,7 +151,7 @@ function NotePage() {
       for (const note of syncResult.to_create) {
         // if the note to be created is NOT in the HardDeletedSyncedNotes, existingTrashIdList, or hardDeletedThirdPartyIds, then create it
         await addNoteWithNotification({
-          title: note.title,
+          title: note.azure_id.toString() + ": " + note.title,
           azureId: note.azure_id,
           createdAt: new Date(),
           lastSavedAt: new Date(),
@@ -264,7 +264,7 @@ function NotePage() {
 
             if (linkedNote) {
               const newId = await addNote({
-                title: "(COPY): " + linkedNote.title,
+                title: "(COPY) " + linkedNote.title,
                 content: linkedNote.content,
                 createdAt: linkedNote.createdAt,
                 lastSavedAt: linkedNote.lastSavedAt,
