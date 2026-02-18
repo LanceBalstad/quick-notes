@@ -1,70 +1,92 @@
-/* .note-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.note-body .ql-container {
-  flex: 1;
-  width: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  font-size: 1.1rem;
-  padding: 12px;
-  background-color: #0A1E1D;
-  color: #54AD9B;
-  box-sizing: border-box;
-  tab-size: 4;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.note-body .ql-container {
-  border: none;
-}
-
-.note-body .ql-editor {
-  padding: 0;
-} */
-
+/* Container for the editor */
 .note-body {
   display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 1;           /* fills parent container */
+  min-height: 0;     /* allows flex children to shrink correctly */
   background-color: #0A1E1D;
 }
 
-/* Remove snow theme border */
+/* Quill container (scrollable) */
 .note-body .ql-container {
-  border: none;
+  display: block;    /* Quill manages its own layout; don't use flex */
+  height: 100%;      /* fill parent height */
   flex: 1;
-  display: flex;
-}
-
-/* editor */
-.note-body .ql-editor {
-  flex: 1;
-  padding: 12px;
-  font-size: 1.1rem;
-  background-color: #0A1E1D;
-  color: #54AD9B;
+  border: none;      /* remove default snow theme border */
   box-sizing: border-box;
-  overflow-y: auto;
-  min-height: 100%;
-  margin: 0;
-  font-family: 'Fira Code', Consolas, monospace;
-  font-size: 16px;
-  line-height: .75;
+  overflow-y: auto;  /* scroll the editor if content is taller than container */
+  background-color: #0A1E1D;
 }
 
-/* Should prevent photo from blowing up text body layout */
+/* Editor content */
+.note-body .ql-editor {
+  padding: 12px;
+  font-size: 16px;
+  line-height: 1.25;
+  min-height: 100%;  /* fill container height */
+  box-sizing: border-box;
+  margin: 0;
+  color: #54AD9B;
+  font-family: 'Fira Code', Consolas, monospace;
+  overflow-y: auto;
+  background-color: #0A1E1D;
+}
+
 .note-body .ql-editor img {
+  cursor: pointer;
+  display: inline-block;   
+  max-width: 100%;          
+  /* height: auto;  <-- Removed to let Resize Module control aspect ratio */
+  box-sizing: border-box;
+}
+
+/* .note-body .ql-editor img[data-resized] {
   max-width: 100%;
   height: auto;
-  cursor: pointer;
+} */
+
+/* Prevent placeholder shift / extra padding */
+.note-body .ql-editor p {
+  margin: 0;
 }
 
+/* Optional: remove default Quill focus outline */
+.note-body .ql-editor:focus {
+  outline: none;
+}
+
+.ql-clipboard {
+  position: fixed;
+  width: 0px;
+}
+
+.note-body .ql-editor ul,
+.note-body .ql-editor ol {
+  padding-left: 1.5em; 
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* 2. ITEMS: Force Disc style */
+.note-body .ql-editor li {
+  list-style-type: disc !important; 
+  list-style-position: outside;
+  margin-left: 0;
+  padding-left: 0; /* Level 0 has no extra padding */
+}
+
+/* 3. INDENTATION LEVELS (Controlled by Padding) */
+.note-body .ql-editor li.ql-indent-1 {
+  padding-left: 1.5em;
+}
+.note-body .ql-editor li.ql-indent-2 {
+  padding-left: 3em;
+}
+.note-body .ql-editor li.ql-indent-3 {
+  padding-left: 4.5em;
+}
+.note-body .ql-editor li.ql-indent-4 {
+  padding-left: 6em;
+}
+.note-body .ql-editor li.ql-indent-5 {
+  padding-left: 7.5em;
+}
