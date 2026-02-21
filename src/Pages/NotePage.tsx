@@ -358,7 +358,6 @@ function NotePage() {
         <Body
           body={body}
           setBody={setBody}
-          onSave={handleSave}
           setHasUserEdited={setHasUserEdited}
           isDeleted={currentNoteId != undefined && !currentNote}
         />
