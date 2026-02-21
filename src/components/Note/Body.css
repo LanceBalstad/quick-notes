@@ -1,33 +1,34 @@
-/* Container for the editor */
+/* Container */
 .note-body {
   display: flex;
-  flex: 1;           /* fills parent container */
-  min-height: 0;     /* allows flex children to shrink correctly */
+  flex: 1;
+  min-height: 0;
   background-color: #0A1E1D;
 }
 
 /* Quill container (scrollable) */
 .note-body .ql-container {
-  display: block;    /* Quill manages its own layout; don't use flex */
-  height: 100%;      /* fill parent height */
+  display: block;
+  height: 100%;
   flex: 1;
-  border: none;      /* remove default snow theme border */
+  border: none;
   box-sizing: border-box;
-  overflow-y: auto;  /* scroll the editor if content is taller than container */
+  overflow-y: auto;
   background-color: #0A1E1D;
 }
 
-/* Editor content */
+/* Editor */
 .note-body .ql-editor {
   padding: 12px;
   font-size: 16px;
   line-height: 1.25;
-  min-height: 100%;  /* fill container height */
+  min-height: 100%;
   box-sizing: border-box;
   margin: 0;
   color: #54AD9B;
   font-family: 'Fira Code', Consolas, monospace;
   overflow-y: auto;
+  max-height: 250px;
   background-color: #0A1E1D;
 }
 
@@ -35,23 +36,12 @@
   cursor: pointer;
   display: inline-block;   
   max-width: 100%;          
-  /* height: auto;  <-- Removed to let Resize Module control aspect ratio */
   box-sizing: border-box;
 }
 
-/* .note-body .ql-editor img[data-resized] {
-  max-width: 100%;
-  height: auto;
-} */
-
-/* Prevent placeholder shift / extra padding */
+/* Prevent placeholder shift / extra padding when we do dash -> space*/
 .note-body .ql-editor p {
   margin: 0;
-}
-
-/* Optional: remove default Quill focus outline */
-.note-body .ql-editor:focus {
-  outline: none;
 }
 
 .ql-clipboard {
@@ -61,32 +51,44 @@
 
 .note-body .ql-editor ul,
 .note-body .ql-editor ol {
-  padding-left: 1.5em; 
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-/* 2. ITEMS: Force Disc style */
-.note-body .ql-editor li {
-  list-style-type: disc !important; 
-  list-style-position: outside;
-  margin-left: 0;
-  padding-left: 0; /* Level 0 has no extra padding */
-}
-
-/* 3. INDENTATION LEVELS (Controlled by Padding) */
-.note-body .ql-editor li.ql-indent-1 {
+  margin: 0;
   padding-left: 1.5em;
 }
+
+/* List indentation */
+.note-body .ql-editor li.ql-indent-1 {
+  margin-left: 1.5em;
+}
 .note-body .ql-editor li.ql-indent-2 {
-  padding-left: 3em;
+  margin-left: 3em;
 }
 .note-body .ql-editor li.ql-indent-3 {
-  padding-left: 4.5em;
+  margin-left: 4.5em;
 }
 .note-body .ql-editor li.ql-indent-4 {
-  padding-left: 6em;
+  margin-left: 6em;
 }
 .note-body .ql-editor li.ql-indent-5 {
-  padding-left: 7.5em;
+  margin-left: 7.5em;
+}
+.note-body .ql-editor li.ql-indent-6 {
+  margin-left: 9em;
+}
+.note-body .ql-editor li.ql-indent-7 {
+  margin-left: 10.5em;
+}
+.note-body .ql-editor li.ql-indent-8 {
+  margin-left: 12em;
+}
+.note-body .ql-editor li.ql-indent-9 {
+  margin-left: 13.5em;
+}
+.note-body .ql-editor li.ql-indent-10 {
+  margin-left: 15em;
+}
+.note-body .ql-editor li.ql-indent-11 {
+  margin-left: 16.5em;
+}
+.note-body .ql-editor li.ql-indent-12 {
+  margin-left: 18em;
 }

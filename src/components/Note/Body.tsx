@@ -6,7 +6,7 @@ if (typeof window !== "undefined") {
   (window as any).Quill = Quill;
 }
 
-/* --- 1. IMAGE BLOT & RESIZE SETUP --- */
+// Image and resize
 const BaseImage = Quill.import("formats/image");
 
 class ImageBlot extends BaseImage {
@@ -48,7 +48,7 @@ if (!(Quill as any).imports["modules/imageResize"]) {
   Quill.register("modules/imageResize", ImageResize);
 }
 
-/* --- 2. DEBOUNCE HELPER --- */
+// debounce used to limit how often we update the body state while resizing an image especially, as this is rapid and causes issues
 function debounce(func: Function, wait: number) {
   let timeout: any;
   const debounced = (...args: any[]) => {
@@ -62,7 +62,6 @@ function debounce(func: Function, wait: number) {
 interface BodyProps {
   body: string;
   setBody: (body: string) => void;
-  onSave: () => Promise<void>;
   setHasUserEdited: (edited: boolean) => void;
   isDeleted?: boolean;
 }
@@ -70,7 +69,6 @@ interface BodyProps {
 const Body = ({
   body,
   setBody,
-  onSave,
   setHasUserEdited,
   isDeleted = false,
 }: BodyProps) => {
@@ -81,15 +79,15 @@ const Body = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // 3. INITIALIZE QUILL (No Bindings Here!)
+    // initialize quill
     const quill = new Quill(editorRef.current, {
       readOnly: isDeleted,
       modules: {
         toolbar: false,
         imageResize: { modules: ["Resize", "DisplaySize"] },
         clipboard: true,
-        // We leave the keyboard module empty here and add bindings below
-        keyboard: { bindings: {} },
+        // Leaving keyboard empty so quill can do its own thing
+        // keyboard: { bindings: {} },
       },
       formats: [
         "bold",
@@ -101,52 +99,14 @@ const Body = ({
         "image",
         "width",
         "height",
-        "indent", // Must be in whitelist
+        "indent",
       ],
     });
 
+    quill.root.setAttribute("spellcheck", "false");
+
     quillRef.current = quill;
 
-    // 4. REGISTER BINDINGS (This ensures they take priority)
-
-    // TAB: Indent List
-    quill.keyboard.addBinding(
-      { key: 9 }, // TS Fix: Removed 'format' property here
-      (_range: any, context: any) => {
-        // TS Fix: Added underscore to unused 'range'
-        // Logic Fix: Check if we are in a list using the context
-        if (context.format.list) {
-          quill.format("indent", "+1");
-          return false; // Prevent default focus shift
-        }
-        return true;
-      },
-    );
-
-    // SHIFT+TAB: Un-indent List
-    quill.keyboard.addBinding(
-      { key: 9, shiftKey: true }, // TS Fix: Removed 'format' property here
-      (_range: any, context: any) => {
-        if (context.format.list) {
-          quill.format("indent", "-1");
-          return false;
-        }
-        return true;
-      },
-    );
-
-    // SPACE: Dash to Bullet
-    quill.keyboard.addBinding({ key: " " }, (range, context) => {
-      if (context.prefix === "-") {
-        quill.deleteText(range.index - 1, 1);
-        quill.formatLine(range.index - 1, 1, "list", "bullet");
-        quill.formatLine(range.index - 1, 1, "indent", false); // Reset indent
-        return false;
-      }
-      return true;
-    });
-
-    // 5. STANDARD SETUP (HTML Sync, Listeners)
     if (body) {
       quill.clipboard.dangerouslyPasteHTML(body);
       lastHtmlRef.current = body;
@@ -176,7 +136,6 @@ const Body = ({
     };
   }, []);
 
-  /* ... Rest of your useEffects for syncing and cleanup ... */
   useEffect(() => {
     const quill = quillRef.current;
     if (!quill) return;
@@ -184,6 +143,7 @@ const Body = ({
     if (quill.root.innerHTML === body) return;
     lastHtmlRef.current = body || "";
     quill.clipboard.dangerouslyPasteHTML(body || "");
+    quill.history.clear();
   }, [body]);
 
   useEffect(() => {
