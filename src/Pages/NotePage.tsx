@@ -180,22 +180,29 @@ function NotePage() {
   };
 
   const handleSave = async (saveTitle: boolean = true) => {
-    const isUniqueName = await isCurrentNameUnique(currentNoteId || -1, title);
-    if (title.trim() === "" && saveTitle) {
-      confirmModal?.showConfirm(
-        "Invalid Note",
-        "Note title cannot be empty!",
-        () => {},
+    await Promise.resolve();
+
+    if (saveTitle) {
+      const isUniqueName = await isCurrentNameUnique(
+        currentNoteId || -1,
+        title,
       );
-      return;
-    }
-    if (!isUniqueName && saveTitle) {
-      confirmModal?.showConfirm(
-        "Invalid Note",
-        "Note title must be unique!",
-        () => {},
-      );
-      return;
+      if (title.trim() === "") {
+        confirmModal?.showConfirm(
+          "Invalid Note",
+          "Note title cannot be empty!",
+          () => {},
+        );
+        return;
+      }
+      if (!isUniqueName) {
+        confirmModal?.showConfirm(
+          "Invalid Note",
+          "Note title must be unique!",
+          () => {},
+        );
+        return;
+      }
     }
     if (currentNoteId) {
       await updateNote(currentNoteId, {
@@ -217,6 +224,18 @@ function NotePage() {
 
     await fetchNotes();
   };
+
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        await handleSave(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
 
   const handleOpenNote = async (noteId?: number) => {
     if (!noteId) {
@@ -339,7 +358,6 @@ function NotePage() {
         <Body
           body={body}
           setBody={setBody}
-          onSave={handleSave}
           setHasUserEdited={setHasUserEdited}
           isDeleted={currentNoteId != undefined && !currentNote}
         />
