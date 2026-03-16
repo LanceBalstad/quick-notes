@@ -60,4 +60,4 @@
 
    ```
 
-   The application will be available as a desktop.
+   The application will be available as a desktop application.
