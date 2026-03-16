@@ -127,12 +127,14 @@ export const SyncAzureModal = ({ onClose }: SyncAzureModalProps) => {
     }
   }
 
+  const isSyncDisabled = !pat.trim() || !organization.trim() || !project.trim();
+
   return (
     <>
-      <div className="modal-backdrop" onClick={onClose}>
+      <div className="sync-modal-backdrop" onClick={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
           <h3>Sync Azure Devops</h3>
-          <div className="modal-buttons">
+          <div className="sync-logic">
             <div className="patLogic">
               {/* <button className="syncAzureButton" onClick={() => syncAzure()}>
                 Sync with Azure (OAUTH)
@@ -144,12 +146,6 @@ export const SyncAzureModal = ({ onClose }: SyncAzureModalProps) => {
                 onChange={(e) => setPat(e.target.value)}
                 placeholder="Personal Access Token..."
               />
-              <button
-                className="syncDevopsPATButton"
-                onClick={() => syncDevopsPAT(pat)}
-              >
-                Sync with Azure (DevOps PAT)
-              </button>
             </div>
             <div className="organizationLogic">
               <input
@@ -165,7 +161,16 @@ export const SyncAzureModal = ({ onClose }: SyncAzureModalProps) => {
                 placeholder="Project..."
               />
             </div>
-            <button onClick={onClose}>Close</button>
+            <span className="buttons">
+              <button
+                className="syncDevopsPATButton"
+                onClick={() => syncDevopsPAT(pat)}
+                disabled={isSyncDisabled}
+              >
+                Sync with Azure (DevOps PAT)
+              </button>
+              <button onClick={onClose}>Close</button>
+            </span>
           </div>
         </div>
       </div>
