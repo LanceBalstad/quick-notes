@@ -16,7 +16,7 @@
 
 ## Download
 
-"The latest version of this project is tag V1.0.0 in Realeaes in Github https://github.com/LanceBalstad/quick-notes/tags"
+"The latest version of this project is tag V1.0.1 in Realeaes in Github https://github.com/LanceBalstad/quick-notes/tags"
 
 ## Installation
 

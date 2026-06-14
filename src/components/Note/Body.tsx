@@ -79,6 +79,8 @@ const Body = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
+    editorRef.current.innerHTML = "";
+
     // initialize quill
     const quill = new Quill(editorRef.current, {
       readOnly: isDeleted,
@@ -102,6 +104,52 @@ const Body = ({
         "indent",
       ],
     });
+
+    const keyboard = quill.keyboard as any;
+
+    keyboard.bindings[9] = keyboard.bindings[9].filter(
+      (binding: any) =>
+        binding.format &&
+        (binding.format.includes?.("list") ||
+          binding.format.includes?.("indent")),
+    );
+
+    quill.keyboard.addBinding({ key: 9 }, (range: any) => {
+      // If tab is clicked and its not the start of a list line (Quill wont override anything), insert 2 spaces at cursor
+      quill.insertText(range.index, "\u00A0\u00A0", "user");
+      quill.setSelection(range.index + 2, 0, "silent");
+      return false;
+    });
+
+    quill.keyboard.addBinding(
+      {
+        key: "H",
+        shortKey: true, // Ctrl on Windows/Linux, Cmd on Mac
+      },
+      (range: any) => {
+        const headerText = "New Header";
+
+        const line =
+          `========================= ${headerText} =========================\n` +
+          `========================= ${headerText} =========================\n`;
+
+        quill.insertText(
+          range.index,
+          line,
+          {
+            bold: true,
+            underline: true,
+          },
+          "user",
+        );
+
+        // Position cursor on header text
+        const headerStart = range.index + 26; // after first separator
+        quill.setSelection(headerStart, headerText.length);
+
+        return false;
+      },
+    );
 
     quill.root.setAttribute("spellcheck", "false");
 
@@ -127,12 +175,30 @@ const Body = ({
     const handleMouseUp = () => {
       debouncedUpdate();
     };
+
+    quill.root.addEventListener("copy", (e: ClipboardEvent) => {
+      e.preventDefault();
+
+      const selection = quill.getSelection();
+      if (!selection) return;
+
+      const text = quill.getText(selection.index, selection.length);
+
+      e.clipboardData?.setData("text/plain", text);
+    });
+
     quill.root.addEventListener("mouseup", handleMouseUp);
 
     return () => {
       quill.off("text-change", debouncedUpdate);
       quill.root.removeEventListener("mouseup", handleMouseUp);
       debouncedUpdate.cancel();
+
+      quillRef.current = null;
+
+      if (editorRef.current) {
+        editorRef.current.innerHTML = "";
+      }
     };
   }, []);
 
@@ -143,6 +209,7 @@ const Body = ({
     if (quill.root.innerHTML === body) return;
     lastHtmlRef.current = body || "";
     quill.clipboard.dangerouslyPasteHTML(body || "");
+    console.log("Rendered HTML:", quill.root.innerHTML);
     quill.history.clear();
   }, [body]);
 
