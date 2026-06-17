@@ -75,6 +75,11 @@ const Body = ({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const quillRef = useRef<Quill | null>(null);
   const lastHtmlRef = useRef(body);
+  const pendingHeaderRef = {
+    start: 0,
+    end: 0,
+    triggered: true,
+  };
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -123,15 +128,37 @@ const Body = ({
 
     quill.keyboard.addBinding(
       {
+        key: 9,
+        shiftKey: true,
+      },
+      (range: any) => {
+        const index = range.index;
+
+        const text = quill.getText(Math.max(0, index - 2), 2);
+
+        const textIsSpaces = text
+          .split("")
+          .every((char) => char === "\u00A0" || char === " ");
+
+        // only remove if it's actually two spaces
+        if (textIsSpaces) {
+          quill.deleteText(index - 2, 2, "user");
+          quill.setSelection(index - 2, 0, "silent");
+        }
+
+        return false;
+      },
+    );
+
+    quill.keyboard.addBinding(
+      {
         key: "H",
         shortKey: true, // Ctrl on Windows/Linux, Cmd on Mac
       },
       (range: any) => {
         const headerText = "New Header";
 
-        const line =
-          `========================= ${headerText} =========================\n` +
-          `========================= ${headerText} =========================\n`;
+        const line = `=========================${headerText}=========================`;
 
         quill.insertText(
           range.index,
@@ -144,7 +171,11 @@ const Body = ({
         );
 
         // Position cursor on header text
-        const headerStart = range.index + 26; // after first separator
+        const headerStart = range.index + 25; // after first separator
+        const headerEnd = headerStart + headerText.length;
+        pendingHeaderRef.start = headerStart;
+        pendingHeaderRef.end = headerEnd;
+        pendingHeaderRef.triggered = false;
         quill.setSelection(headerStart, headerText.length);
 
         return false;
@@ -176,6 +207,51 @@ const Body = ({
       debouncedUpdate();
     };
 
+    let wasInsideHeader = false;
+
+    quill.on("selection-change", (range) => {
+      const pending = pendingHeaderRef;
+
+      if (pending.triggered || !range) return;
+
+      const currentPos = range.index;
+
+      const insideHeader =
+        currentPos >= pending.start && currentPos <= pending.end;
+
+      if (wasInsideHeader && !insideHeader) {
+        pending.triggered = true;
+
+        const [line] = quill.getLine(pending.start);
+
+        if (line) {
+          const lineIndex = quill.getIndex(line);
+          const lineLength = line.length();
+
+          const text = quill.getText(lineIndex, lineLength);
+
+          quill.insertText(
+            lineIndex + lineLength,
+            text,
+            {
+              bold: true,
+              underline: true,
+            },
+            "user",
+          );
+          setTimeout(() => {
+            const range = quill.getSelection();
+            if (!range) return;
+
+            quill.format("bold", false);
+            quill.format("underline", false);
+          }, 0);
+        }
+      }
+
+      wasInsideHeader = insideHeader;
+    });
+
     quill.root.addEventListener("copy", (e: ClipboardEvent) => {
       e.preventDefault();
 
@@ -184,9 +260,17 @@ const Body = ({
 
       const text = quill.getText(selection.index, selection.length);
 
-      e.clipboardData?.setData("text/plain", text);
-    });
+      // Get the selected contents as a Delta
+      const delta = quill.getContents(selection.index, selection.length);
 
+      // Convert Delta to HTML
+      const temp = document.createElement("div");
+      const tempQuill = new Quill(temp);
+      tempQuill.setContents(delta);
+
+      e.clipboardData?.setData("text/plain", text);
+      e.clipboardData?.setData("text/html", tempQuill.root.innerHTML);
+    });
     quill.root.addEventListener("mouseup", handleMouseUp);
 
     return () => {
